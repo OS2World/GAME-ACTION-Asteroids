@@ -1,0 +1,1355 @@
+/****************************************************************************
+ * ASTEROID.C								    *
+ *									    *
+ *   Main program, PM input loop, and all PM specific functions (except     *
+ *   those included in SUBS.C for speed).    			            *
+ *									    *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **
+ *									    *
+ *  -- ASTEROID is an OS/2 v2.0 Presentation Manager implementation of the  *
+ *  -- Atari coin-op arcade game Asteroids.				    *
+ *									    *
+ * ASTEROID is copyright (c) 1991-1993 by Todd B. Crowe.  There is no       *
+ * warrantee implied or otherwise.  You may copy the program freely but it  *
+ * must be accompanied by this notice.	The program may not be sold or      *
+ * distributed commercially or otherwise for profit.  I reserve all rights  *
+ * and privileges to this program.					    *
+ *									    *
+ ****************************************************************************/
+
+#define  INCL_DOS
+#define  MAIN			          /* This is the main program       */
+#include "asteroid.h"			  /* Include game data, #def's, etc */
+#include "pmdefs.h"		          /* Include PM specific stuff      */
+
+/* Local procedure prototyping */
+VOID StartGame(INT);
+VOID ProcessChar(CHAR, BOOL, CHAR, BOOL);
+VOID SetText(HWND, INT, KEY *);
+VOID InitFonts(HPS);
+VOID InitMenu(VOID);
+VOID DoCommand(HWND, ULONG, MPARAM, MPARAM);
+BOOL TogglePause(INT);
+VOID HideFrameControls(VOID);
+VOID ShowFrameControls(VOID);
+VOID ShowMouse(BOOL);
+VOID Initialize(VOID);
+VOID Shutdown(ULONG);
+
+/* Local PM data items (nothing interesting) */
+INT  iTickLen = TIMER_TICK_LENGTH;
+HAB  hab;
+HMQ  hmq;
+HWND hwndFrame,hwndObject,hwndClient,hwndTitleBar,
+     hwndSysMenu,hwndMinMax,hwndMenu,hwndHelp;
+CHAR szClientClass[] = ASTEROID_VER;
+HELPINIT hinit = { sizeof(HELPINIT), 0L, NULL,
+		   (PHELPTABLE) MAKELONG(ID_RESOURCE, 0xFFFF),
+		   NULLHANDLE, NULLHANDLE, 0, 0,
+		   ASTEROID_VER, CMIC_HIDE_PANEL_ID, "ASTEROID.HLP"};
+
+
+/****************************************************************************
+ * main                                                                     *
+ *  - Typical PM main skeleton.  Creates object window for hiding frame     *
+ *    controls.                                                             *
+ *  - No I/O                                                                *
+ ****************************************************************************/
+void main(void)
+{
+    static ULONG flFrameFlags = FCF_SHELLPOSITION | FCF_SIZEBORDER |
+                                FCF_TASKLIST      | FCF_MINMAX     |
+                                FCF_TITLEBAR      | FCF_SYSMENU    |
+				FCF_MENU	  | FCF_ACCELTABLE;
+
+    QMSG   qmsg;
+
+    hab = WinInitialize(0);
+    hmq = WinCreateMsgQueue(hab,0);
+
+    WinRegisterClass(hab, szClientClass, (PFNWP) ClientWndProc,
+     		     CS_SIZEREDRAW | CS_MOVENOTIFY, 0);
+
+    hwndFrame = WinCreateStdWindow(
+	HWND_DESKTOP, 0L, &flFrameFlags,
+	szClientClass, szClientClass, 0L, NULLHANDLE, ID_RESOURCE, &hwndClient);
+
+    /* If WM_CREATE did not fail, initialize and go into input loop */
+    if (hwndFrame != NULLHANDLE) {
+	/* Create an object window to pass parenthood of frame controls *
+	 *   to in order to hide them					*/
+	hwndObject = WinCreateWindow(HWND_OBJECT, WC_FRAME, (PUCHAR)" ",
+	    0L, 0, 0, 0, 0, NULLHANDLE, HWND_TOP, ID_OBJECT, NULL, NULL);
+
+	/* Save control window handles for use in Show-/Hide-FrameControls */
+	hwndTitleBar = WinWindowFromID(hwndFrame, FID_TITLEBAR);
+	hwndSysMenu  = WinWindowFromID(hwndFrame, FID_SYSMENU);
+	hwndMenu     = WinWindowFromID(hwndFrame, FID_MENU);
+	hwndMinMax   = WinWindowFromID(hwndFrame, FID_MINMAX);
+
+	Initialize();
+
+	while (WinGetMsg(hab, &qmsg, NULLHANDLE, 0, 0))
+	    WinDispatchMsg(hab, &qmsg);
+	}
+
+    Shutdown(0L);
+}
+
+/****************************************************************************
+ * ClientWndProc                                                            *
+ *  - Typical PM client window procedure.  (see below)                      *
+ *  - Standard client window I/O                                            *
+ ****************************************************************************/
+MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	   RECTL  rcl;
+	   SWP	  swp;
+	   HPS	  hpsPaint;
+
+    static HPS	  hps;                      /* Permanent HPS                */
+    static INT    cx, cy;		    /* Client window dimensions     */
+    static BOOL   bSlowUpdateNow = FALSE;   /* Update toggle for asteroids  *
+                                             *   and enemy which are slow.  */
+    static POINTL ptlCenter;		    /* Center of client window      */
+
+    switch (msg) {
+      /* Recieved from WinCreateStdWindow */
+      case WM_CREATE:
+	/* Get permanent PS for entire window */
+	hps = WinGetPS(hwnd);
+
+	/* Load private Asteroid fonts from ASTEROID.DLL */
+	if (GpiLoadFonts(hab, "ASTEROID") != GPI_OK) {
+            WinReleasePS(hps);
+	    WinAlarm(HWND_DESKTOP, WA_WARNING);
+	    WinMessageBox(HWND_DESKTOP,NULLHANDLE,
+		"Please put ASTEROID.DLL in a directory in your LIBPATH.",
+		"Error reading ASTEROID.DLL",
+		0,MB_ICONHAND|MB_OK|MB_APPLMODAL);
+	    WinPostMsg(hwnd,WM_QUIT,(MPARAM) 0L,(MPARAM) 0L);
+	    return (MRESULT) TRUE;
+	    }
+
+        /* Register/create logical fonts for use */
+	InitFonts(hps);
+
+	/* Display About dialoge box */
+	WinDlgBox(HWND_DESKTOP, hwnd, (PFNWP)AboutDlgProc, NULLHANDLE,
+		  IDD_ABOUT, NULL);
+
+	return 0;
+
+      /* Recieved during attract mode when user starts game */
+      case WM_STARTGAME:
+        /* Determine the number of players */
+	cPlayers = (INT)LONGFROMMP(mp1);
+
+        /* Initialize each player */
+	for (Player=0;Player<cPlayers;Player++) {
+	    Level[Player] = 1;
+	    Ships[Player] = prfProfile.iSHIPS;
+	    DeletePhotons();
+	    InitAsteroids();
+	    InitEnemy();
+	    }
+
+        /* Start with player 1 */
+	Player = 0;
+	iGameMode = GAME_MODE_NEXT;
+	iGameModeCnt = GAME_PAUSE_TIME-1;
+
+	/* Hide the pointer if mouse controls are enabled */
+	ShowMouse(FALSE);
+        
+        /* Paint everything */
+	WinSendMsg(hwnd, WM_PAINT, MPVOID, MPVOID);
+
+	return 0;
+
+      /* Recieved at startup and at the completion of a game */
+      case WM_INITGAME:
+        /* Make mouse visible if we hid it before */
+        ShowMouse(TRUE);
+        
+	/* Fix menu to reflect attract mode */
+	EnableMenuItem(hwndMenu, IDM_START, TRUE);
+	EnableMenuItem(hwndMenu, IDM_STOP, FALSE);
+
+	/* Initialize player and enemy data structures */
+	cPlayers = 0;
+	Level[0] = 1;
+	for (Player=0;Player<2;Player++) {
+	    Score[Player] = 0L;
+	    Ships[Player] = 0;
+	    DeletePhotons();
+	    }
+	Player = 0;
+
+	/* Initialize asteroids (and enemy) for attract mode */
+	InitAsteroids();
+	InitEnemy();
+
+        /* Depending on whether ASTEROID was just started or a game just  *
+         *   completed display the "High Score" or "Press 1 or 2" screen. */
+	if (SHORT1FROMMP(mp1) == 0) {
+	    iGameMode = GAME_MODE_INIT1;
+	    iGameModeCnt = GAME_INIT_TIME;
+	    }
+	else {
+	    iGameMode = GAME_MODE_INIT2;
+	    iGameModeCnt = GAME_INIT_TIME;
+	    }
+
+        /* Paint everything */
+	WinSendMsg(hwnd, WM_PAINT, MPVOID, MPVOID);
+	return 0;
+
+      /* Usually recieved from the system, sometime forced by the program to *
+       *   ensure the screen is not corrupt.                                 */
+      case WM_PAINT:
+	/* Clear entire window to insure no "droppings" */
+	WinQueryWindowRect(hwnd,&rcl);
+        WinFillRect(hps, &rcl, CLR_BLACK);
+	WinInvalidateRect(hwnd, &rcl, FALSE);
+
+	/* Get the update region and paint it black */
+	hpsPaint = WinBeginPaint(hwnd, (HPS)NULL, &rcl);
+	WinFillRect(hpsPaint, &rcl, CLR_BLACK);
+	WinEndPaint(hpsPaint);
+
+        /* Only in normal play mode should we draw the ship */
+	if ((iGameMode == GAME_MODE_PLAY) &&
+	    (iShipMode[Player] != EXPLOSION) &&
+	    (iShipMode[Player] != HYPERSPACE))
+	    DrawShip(hps, cx, cy, DRAW_INIT);
+	else if ((iGameMode == GAME_MODE_PLAY) &&
+		 (iShipMode[Player] == EXPLOSION))
+	    ExplodeShip(hps, cx, cy);
+
+        /* Draw the enemy if it is on the screen */
+	if (iEnemyMode[Player] != NONE)
+	    if (iEnemyMode[Player] != EXPLOSION)
+		DrawEnemy(hps, cx, cy,DRAW_INIT);
+	    else
+		ExplodeEnemy(hps, cx, cy);
+
+        /* Draw photons and asteroids in all modes but the "Enter your *
+         *   initials" mode, otherwise draw that screen.               */
+	if (iGameMode != GAME_MODE_HIGH) {
+	    DrawPhotons(hps, cx, cy, DRAW_INIT);
+	    DrawAsteroids(hps, cx, cy, DRAW_INIT);
+	    }
+	else
+	    DrawHighScore(hps, cx, cy, DRAW_INIT);
+
+        /* Always draw the score */
+	DrawScore(hps, cx, cy, DRAW_INIT);
+
+	return 0;
+
+      /* Left mouse button down.  This simulates the move/track function *
+       *   in the system menu.                                           */
+      case WM_BUTTON1DOWN:
+        if (prfProfile.bMOUSECONTROL &&
+            iGameMode != GAME_MODE_INIT1 &&
+            iGameMode != GAME_MODE_INIT2 &&
+            !TogglePause(CHECK)) {
+	    UPDATE_FIRE(iShipMode[Player], TRUE);
+            return (MRESULT)TRUE;
+        }
+	return WinSendMsg(hwndFrame, WM_TRACKFRAME,
+			 (MPARAM) (SHORT1FROMMP(mp2) | TF_MOVE), MPVOID);
+
+      case WM_BUTTON1UP:
+        if (prfProfile.bMOUSECONTROL) {
+	    UPDATE_FIRE(iShipMode[Player], FALSE);
+            return (MRESULT)TRUE;
+        }
+        return 0;
+        
+      /* Left mouse button double clicked.  Toggle frame control display. */
+      case WM_BUTTON1DBLCLK:
+        if (!prfProfile.bMOUSECONTROL ||
+            iGameMode == GAME_MODE_INIT1 ||
+            iGameMode == GAME_MODE_INIT2 ||
+            TogglePause(CHECK)) {
+            if (prfProfile.bCONTROLS = !prfProfile.bCONTROLS)
+	    	ShowFrameControls();
+            else
+	    	HideFrameControls();
+        }
+	return 0;
+
+      case WM_BUTTON2DOWN:
+        if (prfProfile.bMOUSECONTROL) {
+	    UPDATE_SHIELD(iShipMode[Player], iShipShieldCnt[Player]);
+            return (MRESULT)TRUE;
+        }
+        return 0;
+        
+      case WM_BUTTON2CLICK:
+        if (prfProfile.bMOUSECONTROL) {
+            UPDATE_HYPERSPACE(iShipMode[Player], iShipModeCnt[Player]);
+            return (MRESULT)TRUE;
+        }
+        return 0;
+        
+      /* Right mouse button double clicked.  Display the about dialog box. */
+      case WM_BUTTON2DBLCLK:
+        if (!prfProfile.bMOUSECONTROL ||
+            iGameMode == GAME_MODE_INIT1 ||
+            iGameMode == GAME_MODE_INIT2 ||
+            TogglePause(CHECK)) {
+            WinDlgBox(HWND_DESKTOP, hwndClient, (PFNWP)AboutDlgProc,
+            	      NULLHANDLE, IDD_ABOUT, NULL);
+        }
+	return 0;
+
+      /* User typed a key.  Most of this is self explanatory. */
+      case WM_CHAR:
+	ProcessChar((CHAR) (CHARMSG(&msg)->vkey-1),
+		    CHARMSG(&msg)->fs & KC_VIRTUALKEY,
+		    (CHAR) (CHARMSG(&msg)->chr),
+		    (BOOL) !(CHARMSG(&msg)->fs & KC_KEYUP));
+	return 0;
+
+      /* User entered a command via the menu bar. */
+      case WM_COMMAND:
+	DoCommand(hwnd, msg, mp1, mp2);
+	return 0;
+
+      /* Suspend/un-suspend game depending on focus */
+      case WM_SETFOCUS:
+	if ((BOOL) SHORT1FROMMP(mp2))
+	    TogglePause(SUSPEND_OFF);
+	else if (!prfProfile.bBACKGRND)
+	    TogglePause(SUSPEND_ON);
+	return 0;
+
+      /* Keep track of the client window size.  Profile information is not *
+       *   updated here because there are better places (i.e. at exit)     */
+      case WM_SIZE:
+	cx = (INT)SHORT1FROMMP(mp2);
+	cy = (INT)SHORT2FROMMP(mp2);
+
+      /* Keep track of client window position.  Also updates profile info. */
+      case WM_MOVE:
+	WinQueryWindowPos(hwndFrame,&swp);
+	if (!(swp.fl & SWP_MAXIMIZE) && !(swp.fl & SWP_MINIMIZE)) {
+	    prfProfile.x  = swp.x;prfProfile.y   = swp.y;
+	    prfProfile.cx = swp.cx;prfProfile.cy = swp.cy;
+	    }
+
+	if (swp.fl & SWP_MINIMIZE)
+	    if (!prfProfile.bBACKGRND) {
+		/* Set icon */
+		WinSendMsg(hwndFrame, WM_SETICON,
+		    (MPARAM) WinLoadPointer(HWND_DESKTOP, NULLHANDLE,
+					    ID_RESOURCE), MPVOID);
+
+		TogglePause(SUSPEND_ON);
+		}
+	    else
+		WinSendMsg(hwndFrame, WM_SETICON, MPVOID, MPVOID);
+	else
+	    TogglePause(SUSPEND_OFF);
+
+	ptlCenter.x = swp.cx / 2;
+        ptlCenter.y = swp.cy / 2;
+        WinMapWindowPoints(hwndClient, HWND_DESKTOP, &ptlCenter, 1L);
+
+	return 0;
+
+      /* Recieved approximately 31 times a second.  This is the longest and *
+       *   ugliest of the messages, partly because there are so many cases  *
+       *   to keep track of, partly because it must be highly optimized.    */
+      case WM_TIMER:
+        if (prfProfile.bMOUSECONTROL &&
+            iGameMode != GAME_MODE_INIT1 &&
+            iGameMode != GAME_MODE_INIT2) {                   POINTL ptl;
+            static BOOL   bUp, bLeft, bRight;
+
+            WinQueryPointerPos(HWND_DESKTOP, &ptl);
+            if (bUp || (ptl.y - ptlCenter.y > 0))
+	       	UPDATE_THRUST(iShipMode[Player],
+            		      bUp = (ptl.y - ptlCenter.y > 0));
+            if (bLeft || (ptlCenter.x - ptl.x > 0))
+                UPDATE_LEFT(iShipMode[Player],
+                	    bLeft = (ptlCenter.x - ptl.x > 0));
+            if (bRight || (ptlCenter.x - ptl.x < 0))
+                UPDATE_RIGHT(iShipMode[Player],
+                 	     bRight = (ptlCenter.x - ptl.x < 0));
+            WinSetPointerPos(HWND_DESKTOP, ptlCenter.x, ptlCenter.y);
+        }
+        
+        /* Determine the current game mode */
+	switch (iGameMode) {
+
+          /* Either initialization/attract mode screen. */
+	  case GAME_MODE_INIT1: case GAME_MODE_INIT2:
+            /* Switch screens when count expires */
+	    if (--iGameModeCnt == 0) {
+		if (iGameMode == GAME_MODE_INIT1)
+		    iGameMode = GAME_MODE_INIT2;
+		else
+		    iGameMode = GAME_MODE_INIT1;
+		iGameModeCnt = GAME_INIT_TIME;
+
+                /* Score must be redrawn because the attract mode screens *
+                 *   draw the score differently.                          */
+		DrawScore(hps, cx, cy, DRAW_REINIT);
+		}
+
+            /* Update photons, asteroids, enemy, and score */
+	    UpdatePhotons(hps, cx, cy);
+	    if (uiSpeed == SPEED_OS2 || (bSlowUpdateNow = !bSlowUpdateNow)) {
+		UpdateAsteroids(hps, cx, cy);
+		UpdateEnemy(hps, cx, cy);
+		DrawScore(hps, cx, cy, DRAW_REFRESH);
+		}
+	    break;
+
+          /* Completion of one player's turn or new game */
+	  case GAME_MODE_NEXT:
+            /* Initially, erase and redraw everything for new player */
+	    if (iGameModeCnt-- == GAME_PAUSE_TIME) {
+		if ((cPlayers == MAXPLAYERS) &&
+                    (Ships[(Player+1) % MAXPLAYERS])) {
+		    DrawAsteroids(hps, cx, cy, DRAW_ERASE);
+		    DrawPhotons(hps, cx, cy, DRAW_ERASE);
+		    Player = (Player+1) % MAXPLAYERS;
+		    }
+		DrawScore(hps, cx, cy, DRAW_REINIT);
+		DrawAsteroids(hps, cx, cy, DRAW_INIT);
+		}
+            /* During countdown update score and asteroids */
+	    else if (iGameModeCnt > 0) {
+		if (uiSpeed == SPEED_OS2 || (bSlowUpdateNow = !bSlowUpdateNow)) {
+		    DrawScore(hps, cx, cy, DRAW_REFRESH);
+		    UpdateAsteroids(hps, cx, cy);
+		    }
+		}
+            /* At end of countdown start the player */
+	    else {
+		InitShip();
+		InitEnemy();
+		iGameMode = GAME_MODE_PLAY;
+		DrawScore(hps, cx, cy, DRAW_REINIT);
+		}
+	    break;
+
+          /* Normal play mode */
+	  case GAME_MODE_PLAY:
+            /* Update ship, photons, asteroids, enemy, and score */
+	    UpdateShip(hps, cx, cy);
+	    UpdatePhotons(hps, cx, cy);
+	    if (uiSpeed == SPEED_OS2 || (bSlowUpdateNow = !bSlowUpdateNow)) {
+		UpdateAsteroids(hps, cx, cy);
+		UpdateEnemy(hps, cx, cy);
+                /* Erase old and draw new scores if there is a change*/
+		if (bChangeScore) {
+		    bChangeScore = FALSE;
+		    DrawScore(hps, cx, cy, DRAW_REINIT);
+		    }
+                /* Else just refresh the score */
+		else
+		    DrawScore(hps, cx, cy, DRAW_REFRESH);
+		}
+	    break;
+
+          /* Game over mode.  This is the longest and ugliest case because  *
+           *   conditions are highly dependent on the number of players,    *
+           *   multiplayer game status, and the number and order of high    *
+           *   scores.                                                      */
+	  case GAME_MODE_OVER:
+            /* Initially, just update the score and number of ships */
+	    if (iGameModeCnt-- == GAME_PAUSE_TIME)
+		DrawScore(hps, cx, cy, DRAW_REINIT);
+
+            /* During countdown refresh the score and update the asteroids */
+	    else if (iGameModeCnt > 0) {
+		if (uiSpeed == SPEED_OS2 || (bSlowUpdateNow = !bSlowUpdateNow)) {
+		    DrawScore(hps, cx, cy, DRAW_REFRESH);
+		    UpdateAsteroids(hps, cx, cy);
+		    }
+		}
+
+            /* At the end of the countdown, if there are any other players, *
+             *   continue with them.                                        */
+	    else {
+                /* Countinue on with any remaining players. */
+		if ((cPlayers == MAXPLAYERS) &&
+                    (Ships[(Player+1) % MAXPLAYERS])) {
+                    /* Erase all of the old asteroids. */
+		    DrawAsteroids(hps, cx, cy, DRAW_ERASE);
+
+                    /* Setup everything for the next player */
+		    Player = (Player+1) % MAXPLAYERS;
+		    InitShip();
+		    InitEnemy();
+		    iGameMode = GAME_MODE_PLAY;
+		    DrawAsteroids(hps, cx, cy, DRAW_INIT);
+		    DrawScore(hps, cx, cy, DRAW_REINIT);
+		    }
+
+                /* Check for new high scores and update table as necessary. */
+		else {
+                    /* Erase all of the old asteroids. */
+		    DrawAsteroids(hps, cx, cy, DRAW_ERASE);
+
+
+                /* The following if/else block is admittedly a kludge, it is *
+                 *   simple and it does work, however.  Ideally it should    *
+                 *   sort the high scores and update the high score table in *
+                 *   descending order.                                       */
+
+                    /* If player 1 scored higher than player 2 then check *
+                     *   player 1 first for a high score.                 */
+       		    if (Score[0] > Score[1])
+			for (Player=0;Player<cPlayers;Player++)
+                            /* If the player's score is > than the lowest, *
+                             *   update the high score table.              */
+			    if (Score[Player] > prfProfile.lSCORES[9]) {
+				UpdateHighScores();
+				iGameMode = GAME_MODE_HIGH;
+				}
+                            /* Otherwise, make sure he is not asked for his *
+                             *   initials.                                  */
+			    else
+				Score[Player] = 0;
+
+                    /* Otherwise, check player 2 first */
+		    else
+			for (Player=cPlayers;Player>=0;Player--)
+                            /* If the player's score is > than the lowest, *
+                             *   update the high score table.              */
+			    if (Score[Player] > prfProfile.lSCORES[9]) {
+				UpdateHighScores();
+				iGameMode = GAME_MODE_HIGH;
+				}
+                            /* Otherwise, make sure he is not asked for his *
+                             *   initials.                                  */
+			    else
+				Score[Player] = 0L;
+
+                    /* If there was no high score, go into attract mode */
+		    if (iGameMode != GAME_MODE_HIGH)
+			WinSendMsg(hwnd,WM_INITGAME,MPFROMSHORT(1),(MPARAM) 0L);
+                    /* Else, check for player 1's initials first then 2's   *
+                     * This is not faithful, in the arcade game the player  *
+                     *   with the higher score always goes first.           */
+		    else {
+			if (Score[0] > 0L)
+			    Player = 0;
+			else
+			    Player = 1;
+			DrawScore(hps, cx, cy, DRAW_REINIT);
+			DrawHighScore(hps, cx, cy, DRAW_INIT);
+			}
+		    }
+		}
+	    break;
+
+          /* Mode which prompts players to enter their initials */
+	  case GAME_MODE_HIGH:
+            /* If the player's position is > 0 then refresh the screen */
+	    if (Score[Player] > 0L)
+		DrawHighScore(hps, cx, cy, DRAW_REFRESH);
+            /* Else, the current player is done go to the next */
+	    else if ((cPlayers == MAXPLAYERS) && (Player == 0) &&
+		     (Score[1] > 0L)) {
+		Player++;
+		DrawHighScore(hps, cx, cy, DRAW_REINIT);
+		}
+            /* If there are no more high scores then go into attract mode */
+	    else
+		WinSendMsg(hwnd, WM_INITGAME, MPFROMSHORT(1), MPVOID);
+	    break;
+	  }
+	return 0;
+
+      /* Used by help manager */
+      case HM_QUERY_KEYS_HELP:
+	 return((MRESULT)IDH_CLIENTKEYS);
+
+      /* Recieved always from the system or in the case of an initialization*
+       *   error.  Both messages will normally save the profile information.*
+       * Ideally the profile section should be moved to a subroutine and the*
+       *   the following should be broken into two distinct cases.	    */
+      case WM_SAVEAPPLICATION:
+      case WM_DESTROY:
+	/* If the fonts were not found bApplicationOk will be false, in     *
+	 *   that case the window profile information should not be updated.*/
+	if (TRUE) {
+	    /* Copy window position and size info into profile structure */
+	    WinQueryWindowPos(hwndFrame, &swp);
+	    if (swp.fl & SWP_MAXIMIZE)
+		prfProfile.ulMINMAX = SWP_MAXIMIZE;
+	    else if (swp.fl & SWP_MINIMIZE)
+		prfProfile.ulMINMAX = SWP_MINIMIZE;
+	    else {
+		prfProfile.ulMINMAX = 0;
+		prfProfile.x  = swp.x;prfProfile.y   = swp.y;
+		prfProfile.cx = swp.cx;prfProfile.cy = swp.cy;
+		}
+
+	    /* Write profile information */
+	    PrfWriteProfileData(HINI_USERPROFILE, szClientClass, "Data",
+		&prfProfile, sizeof(PROFILEREC));
+	    }
+
+        /* If the application is terminating release the fonts and the hps. */
+        if (msg == WM_DESTROY) {
+	    /* Make sure mouse is visible if we hid it before */
+            ShowMouse(TRUE);
+            
+	    /* Release font identifiers and DLL resource module */
+	    GpiSetCharSet(hps, LCID_DEFAULT);
+	    GpiDeleteSetId(hps, LCID_LARGE);
+	    GpiDeleteSetId(hps, LCID_SMALL);
+	    GpiUnloadFonts(hab, "ASTEROID");
+
+	    /* Release the "permanent" presentation space */
+	    WinReleasePS(hps);
+            }
+	return 0;
+
+      }
+    return WinDefWindowProc(hwnd, msg, mp1, mp2);
+}
+
+
+/****************************************************************************
+ * StartGame								    *
+ *  - Starts a new 1 or 2 player game based on the value in sPlyrs.	    *
+ ****************************************************************************/
+VOID StartGame(INT iPlyrs)
+{
+    /* Fix check marks for related menu items */
+    EnableMenuItem(hwndMenu, IDM_START, FALSE);
+    EnableMenuItem(hwndMenu, IDM_STOP, TRUE);
+
+    /* Request a new game */
+    WinPostMsg(hwndClient, WM_STARTGAME, MPFROMLONG((LONG)iPlyrs), MPVOID);
+}
+
+/****************************************************************************
+ * ProcessChar								    *
+ * Processes WM_CHAR messages for ClientWndProc 			    *
+ * Receives the virtual key and character codes 			    *
+ ****************************************************************************/
+VOID ProcessChar(CHAR vkey, BOOL vkv, CHAR chr, BOOL keydown)
+{
+    BOOL bKeyPress = TRUE;
+    static INT  iSpeed = 0, iPos = 0;
+    static CHAR szSpeed[2][8] = { "Windows", "OS/2" };
+    
+    
+    if (!vkv && !keydown) {
+    	if (iSpeed == 0 && chr == szSpeed[0][iPos] ||
+            iSpeed == 1 && chr == szSpeed[1][iPos]) {
+            iPos++;
+        } else if (iSpeed == 0 && chr == szSpeed[1][iPos]) {
+            iPos = 1;
+            iSpeed = 1;
+        } else if (iSpeed == 1 && chr == szSpeed[0][iPos]) {
+            iPos = 1;
+            iSpeed = 0;
+        } else {
+            iPos = 0;
+        }
+        if (iSpeed == 0 && iPos == 7) {
+            iPos = 0;
+            if (uiSpeed == SPEED_WINDOWS) {
+            	uiSpeed = SPEED_NORMAL;
+            	iTickLen = TIMER_TICK_LENGTH;
+            	WinStartTimer(hab, hwndClient, ID_TIMER, iTickLen);
+            } else {
+            	uiSpeed = SPEED_WINDOWS;
+            	iTickLen = TIMER_TICK_LENGTH*4;
+            	WinStartTimer(hab, hwndClient, ID_TIMER, iTickLen);
+            }
+        } else if (iSpeed == 1 && iPos == 4) {
+            iPos = 0;
+            if (uiSpeed == SPEED_WINDOWS) {
+                uiSpeed = SPEED_OS2;
+            	iTickLen = TIMER_TICK_LENGTH;
+            	WinStartTimer(hab, hwndClient, ID_TIMER, iTickLen);
+            } else if (uiSpeed == SPEED_OS2) {
+            	uiSpeed = SPEED_NORMAL;
+            } else {
+            	uiSpeed = SPEED_OS2;
+            }
+        }
+    }
+        
+    if ((iGameMode == GAME_MODE_HIGH) && !keydown)
+	return;
+
+    if ((vkv &&  (vkey == prfProfile.keyDEFS[4].vk)) ||
+        (!vkv && (chr  == prfProfile.keyDEFS[4].chr))) {
+        if (iShipMode[Player] & FIRERELEASE) {
+            if (!keydown) {
+      	        iShipMode[Player] &= ~FIRERELEASE;
+            }
+        } else {
+            UPDATE_FIRE(iShipMode[Player], keydown);
+        }
+    } else if ((vkv &&  (vkey == prfProfile.keyDEFS[0].vk)) ||
+    	       (!vkv && (chr  == prfProfile.keyDEFS[0].chr))) {
+        UPDATE_LEFT(iShipMode[Player], keydown);
+    } else if ((vkv &&  (vkey == prfProfile.keyDEFS[1].vk)) ||
+    	       (!vkv && (chr  == prfProfile.keyDEFS[1].chr))) {
+        UPDATE_RIGHT(iShipMode[Player], keydown);
+    } else if ((vkv &&  (vkey == prfProfile.keyDEFS[2].vk)) ||
+	       (!vkv && (chr  == prfProfile.keyDEFS[2].chr))) {
+        UPDATE_THRUST(iShipMode[Player], keydown);
+    } else if ((vkv &&  (vkey == prfProfile.keyDEFS[3].vk)) ||
+	       (!vkv && (chr  == prfProfile.keyDEFS[3].chr))) {
+        UPDATE_HYPERSPACE(iShipMode[Player], iShipModeCnt[Player]);
+    } else if ((vkv &&  (vkey == prfProfile.keyDEFS[5].vk )) ||
+	       (!vkv && (chr  == prfProfile.keyDEFS[5].chr))) {
+        UPDATE_SHIELD(iShipMode[Player], iShipShieldCnt[Player]);
+    } else {
+        bKeyPress = FALSE;
+    }
+    
+    if (bKeyPress && TogglePause(CHECK))
+	TogglePause(TOGGLE);
+}
+
+/****************************************************************************
+ * AboutDlgProc                                                             *
+ *  - Typical PM dialog window procedure.  (Almost skeletal)                *
+ *  - Standard dialog window I/O                                            *
+ ****************************************************************************/
+MRESULT EXPENTRY AboutDlgProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+    switch (msg) {
+      case WM_COMMAND:
+        switch (COMMANDMSG(&msg)->cmd) {
+	  case DID_CANCEL:
+            /* On cancel, tell application to terminate */
+            WinPostMsg(hwndFrame, WM_QUIT, 0L, 0L);
+	  case DID_OK:
+            WinDismissDlg(hwnd, 0);
+            return 0;
+          }
+        break;
+      }
+    return WinDefDlgProc(hwnd, msg, mp1, mp2);
+}
+
+/****************************************************************************
+ * KeyDlgProc								    *
+ *  - Redefines keys by processing WM_CHAR's and assigning the key to the   *
+ *	selected radiobutton (game key) 				    *
+ *  - Standard dialog window I/O                                            *
+ ****************************************************************************/
+MRESULT EXPENTRY KeyDlgProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	   int	 i;
+    static KEY	 keyTmp[KEYS];
+    static SHORT id;
+
+    switch (msg) {
+      case WM_INITDLG:
+	/* Set the associated text for each of the radio buttons */
+	for (i=0;i<KEYS;i++) {
+	    keyTmp[i] = prfProfile.keyDEFS[i];
+	    SetText(hwnd, TEXT_LEFT+i, &prfProfile.keyDEFS[i]);
+	    }
+
+	/* Check the first radio button and let it set up id */
+	WinSendDlgItemMsg(hwnd, KEY_LEFT, BM_CLICK, MPFROMSHORT(TRUE), MPVOID);
+
+	return (MRESULT) TRUE;
+
+      case WM_HELP:
+      	i = IDH_KEYS;
+      	WinSendMsg(hwndHelp, HM_DISPLAY_HELP,
+          	   MPFROMP(&i), MPFROMSHORT(HM_RESOURCEID));
+        return 0;
+        
+      case WM_COMMAND:
+	switch (SHORT1FROMMP(mp1)) {
+	  case DID_OK:
+	    for (i=0;i<KEYS;i++)
+		prfProfile.keyDEFS[i] = keyTmp[i];
+	  case DID_CANCEL:
+            WinDismissDlg(hwnd, 0);
+            return 0;
+          }
+	return 0;
+
+      case WM_CONTROL:
+	if (SHORT2FROMMP(mp1) == BN_CLICKED) {
+	    switch (SHORT1FROMMP(mp1)) {
+	      case KEY_LEFT:
+		id = TEXT_LEFT;
+		break;
+	      case KEY_RIGHT:
+		id = TEXT_RIGHT;
+		break;
+	      case KEY_THRUST:
+		id = TEXT_THRUST;
+		break;
+	      case KEY_HYPER:
+		id = TEXT_HYPER;
+		break;
+	      case KEY_FIRE:
+		id = TEXT_FIRE;
+		break;
+	      case KEY_SHIELD:
+		id = TEXT_SHIELD;
+	      }
+
+	    WinSetFocus(HWND_DESKTOP, WinWindowFromID(hwnd,id));
+	    }
+	return 0;
+
+      case WM_CHAR:
+	if (!(CHARMSG(&msg)->fs & KC_KEYUP)) {
+	    if ((CHARMSG(&msg)->fs & KC_VIRTUALKEY) &&
+		(CHARMSG(&msg)->vkey != VK_SHIFT) &&
+		(CHARMSG(&msg)->vkey != VK_CTRL) &&
+		(CHARMSG(&msg)->vkey != VK_ALT) &&
+		(CHARMSG(&msg)->vkey != VK_F1) &&
+		(CHARMSG(&msg)->vkey-1 < MAXVKEY)) {
+                if (CHARMSG(&msg)->vkey == VK_F3) {
+                    WinSendMsg(hwnd, WM_COMMAND, MPFROM2SHORT(DID_CANCEL, 0),
+                    	       MPVOID);
+                    return 0;
+                }
+		keyTmp[id-TEXT_LEFT].vk  = (CHAR) (CHARMSG(&msg)->vkey - 1);
+		keyTmp[id-TEXT_LEFT].chr = 0;
+		}
+	    else if ((CHARMSG(&msg)->fs & KC_CHAR) &&
+		     (CHARMSG(&msg)->chr > 32)	   &&
+		     (CHARMSG(&msg)->chr < 127)) {
+		keyTmp[id-TEXT_LEFT].vk = 0;
+		keyTmp[id-TEXT_LEFT].chr = (CHAR) CHARMSG(&msg)->chr;
+		}
+	    else {
+		keyTmp[id-TEXT_LEFT].vk = 0;
+		keyTmp[id-TEXT_LEFT].chr = 0;
+		}
+	    }
+
+	SetText(hwnd, id, &keyTmp[id-TEXT_LEFT]);
+	return 0;
+
+      }
+    return WinDefDlgProc(hwnd, msg, mp1, mp2);
+}
+
+/****************************************************************************
+ * SetText								    *
+ *  - Used by KeyDlgProc to set the text in control windows		    *
+ *	in those dialog boxes.						    *
+ ****************************************************************************/
+VOID SetText(HWND hwnd, INT id, KEY *key)
+{
+    CHAR tmp[2];
+
+    if (key->vk)
+	WinSetWindowText(WinWindowFromID(hwnd, id), VKEY[key->vk].name);
+    else if (key->chr) {
+	tmp[0] = key->chr;tmp[1] = 0;
+	WinSetWindowText(WinWindowFromID(hwnd, id), tmp);
+	}
+    else
+	WinSetWindowText(WinWindowFromID(hwnd, id), "???");
+}
+
+/****************************************************************************
+ * InitMenu								    *
+ *  - Sets menu item check according to profile information.		    *
+ ****************************************************************************/
+VOID InitMenu(VOID)
+{
+    /* Set options menu to mach profile info */
+    CheckMenuItem(hwndMenu, IDM_SHIPS+prfProfile.iSHIPS, TRUE);
+    CheckMenuItem(hwndMenu, IDM_PHOTONS+prfProfile.iPHOTONS, TRUE);
+    if (prfProfile.bRAPIDFIRE) {
+	CheckMenuItem(hwndMenu, IDM_RAPIDFIRE, TRUE);
+	EnableMenuItem(hwndMenu, IDM_FIRERATE, TRUE);
+	}
+    CheckMenuItem(hwndMenu, IDM_FIRERATE+prfProfile.iFIRERATE, TRUE);
+    if (prfProfile.bSHIELD)
+	CheckMenuItem(hwndMenu, IDM_SHIELD, TRUE);
+    if (prfProfile.bMOUSECONTROL)
+        CheckMenuItem(hwndMenu, IDM_MOUSE, TRUE);
+
+    /* If help instance creation failed disable the help menu items */
+    if (hwndHelp == NULLHANDLE) {
+       EnableMenuItem(hwndMenu, IDM_HELPFORHELP, FALSE);
+       EnableMenuItem(hwndMenu, IDM_EXTENDEDHELP, FALSE);
+       EnableMenuItem(hwndMenu, IDM_KEYSHELP, FALSE);
+       EnableMenuItem(hwndMenu, IDM_HELPINDEX, FALSE);
+    }
+
+    /* Set background execution toggle */
+    CheckMenuItem(hwndMenu, IDM_BACKGRND, prfProfile.bBACKGRND);
+}
+
+/****************************************************************************
+ * DoCommand								    *
+ *  - Handles WM_COMMAND messages for client window.			    *
+ *  - Standard client window I/O                                            *
+ ****************************************************************************/
+VOID DoCommand(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+    switch (SHORT1FROMMP(mp1)) {
+      case IDM_START1: case IDM_START2:
+	/* Start a new 1 or 2 player game. */
+        if (iGameMode == GAME_MODE_INIT1 || iGameMode == GAME_MODE_INIT2) {
+            TogglePause(FORCE_UNPAUSE);
+	    StartGame(SHORT1FROMMP(mp1)-IDM_START);
+        }
+	break;
+
+      case IDM_PAUSE:
+	/* Toggle pause state. */
+	TogglePause(TOGGLE);
+	break;
+
+      case IDM_STOP:
+	/* End game, but don't exit */
+	WinPostMsg(hwnd, WM_INITGAME, (MPARAM) 0L, MPVOID);
+	break;
+
+      case IDM_3SHIPS: case IDM_4SHIPS: case IDM_5SHIPS:
+	/* Select 3, 4, or 5 ships */
+	CheckMenuItem(hwndMenu, IDM_SHIPS+prfProfile.iSHIPS, FALSE);
+	prfProfile.iSHIPS = SHORT1FROMMP(mp1) - IDM_SHIPS;
+	CheckMenuItem(hwndMenu, IDM_SHIPS+prfProfile.iSHIPS, TRUE);
+	break;
+
+      case IDM_3PHOTONS: case IDM_4PHOTONS:
+      case IDM_6PHOTONS: case IDM_8PHOTONS:
+	/* Select 3, 4, 6, or 8 photons */
+	CheckMenuItem(hwndMenu, IDM_PHOTONS+prfProfile.iPHOTONS, FALSE);
+	prfProfile.iPHOTONS = SHORT1FROMMP(mp1) - IDM_PHOTONS;
+	CheckMenuItem(hwndMenu, IDM_PHOTONS+prfProfile.iPHOTONS, TRUE);
+	break;
+
+      case IDM_RAPIDFIRE:
+	/* Select rapidfire option */
+	if (prfProfile.bRAPIDFIRE = !prfProfile.bRAPIDFIRE) {
+	    CheckMenuItem(hwndMenu, IDM_RAPIDFIRE, TRUE);
+	    EnableMenuItem(hwndMenu, IDM_FIRERATE, TRUE);
+	    }
+	else {
+	    CheckMenuItem(hwndMenu, IDM_RAPIDFIRE, FALSE);
+	    EnableMenuItem(hwndMenu, IDM_FIRERATE, FALSE);
+	    }
+	break;
+
+      case IDM_SLOWRATE: case IDM_MEDRATE: case IDM_FASTRATE:
+	CheckMenuItem(hwndMenu, IDM_FIRERATE+prfProfile.iFIRERATE, FALSE);
+	prfProfile.iFIRERATE = SHORT1FROMMP(mp1) - IDM_FIRERATE;
+	CheckMenuItem(hwndMenu, SHORT1FROMMP(mp1), TRUE);
+	break;
+
+      case IDM_SHIELD:
+	/* Select shield option */
+	if (prfProfile.bSHIELD = !prfProfile.bSHIELD)
+	    CheckMenuItem(hwndMenu, IDM_SHIELD, TRUE);
+	else
+	    CheckMenuItem(hwndMenu, IDM_SHIELD, FALSE);
+	break;
+
+      case IDM_MOUSE:
+      	/* Allow mouse input for ship control */
+        if (prfProfile.bMOUSECONTROL = !prfProfile.bMOUSECONTROL) {
+	    /* Hide the pointer if playing a game */
+            ShowMouse(FALSE);
+            CheckMenuItem(hwndMenu, IDM_MOUSE, TRUE);
+        } else {
+	    /* Show the pointer if it is currently hidden */
+            ShowMouse(TRUE);
+            CheckMenuItem(hwndMenu, IDM_MOUSE, FALSE);
+        }
+        break;
+        
+      case IDM_KEYS:
+	/* Pop up key definition dialog box */
+	WinDlgBox(HWND_DESKTOP, hwnd, (PFNWP)KeyDlgProc, NULLHANDLE, IDD_KEY,
+        	  NULL);
+	break;
+
+      case IDM_FRAME:
+	/* This case does not come from the menu, but instead from the	*
+	 * accelerator table.						*/
+	if (prfProfile.bCONTROLS = !prfProfile.bCONTROLS)
+	    ShowFrameControls();
+	else
+	    HideFrameControls();
+	break;
+
+      case IDM_BACKGRND:
+	CheckMenuItem(hwndMenu, IDM_BACKGRND,
+	    prfProfile.bBACKGRND = !prfProfile.bBACKGRND);
+	break;
+
+
+      case IDM_HELPFORHELP:
+	WinSendMsg(hwndHelp, HM_DISPLAY_HELP, MPVOID, MPVOID);
+	break;
+
+      case IDM_EXTENDEDHELP:
+	WinSendMsg(hwndHelp, HM_EXT_HELP, MPVOID, MPVOID);
+	break;
+
+      case IDM_KEYSHELP:
+	WinSendMsg(hwndHelp, HM_KEYS_HELP, MPVOID, MPVOID);
+	break;
+
+      case IDM_HELPINDEX:
+	WinSendMsg(hwndHelp, HM_HELP_INDEX, MPVOID, MPVOID);
+	break;
+
+      case IDM_EXIT:
+	/* On cancel, tell application to terminate */
+	WinPostMsg(hwndFrame, WM_QUIT, MPVOID, MPVOID);
+	break;
+
+      case IDM_ABOUT:
+	/* Pop up about dialog box */
+	WinDlgBox(HWND_DESKTOP, hwnd, (PFNWP)AboutDlgProc, NULLHANDLE,
+		  IDD_ABOUT, NULL);
+	break;
+      }
+}
+
+
+/****************************************************************************
+ * NewTimerTick                                                             *
+ *  - This routine is perhaps the most interesting optimization in ASTEROID *
+ *    DrawAsteroid calls this function to see if there are any timer mess-  *
+ *    ages queued.  If there are any that indicates that the computer is    *
+ *    not running fast enough to draw everything;  DrawAsteroid terminates  *
+ *    and the remaining asteroids are drawn in the tick (if possible).  If  *
+ *    there are no timer ticks queued then DrawAsteroid continues.          *
+ *  - Returns status of whether or not there exists a WM_TIMER message in   *
+ *    the input queue.                                                      *
+ ****************************************************************************/
+BOOL NewTimerTick(VOID)
+{
+    if (WinQueryQueueStatus(HWND_DESKTOP) & QS_TIMER)
+	return TRUE;
+    else
+	return FALSE;
+}
+
+/****************************************************************************
+ * TogglePause								    *
+ *  - Toggles pause status for game					    *
+ *    Easiest method is to simply disable/enable the timer.		    *
+ *  - If bCheck is TRUE, returns the current bPaused value, else toggles    *
+ ****************************************************************************/
+BOOL TogglePause(INT iOption)
+{
+    static BOOL bSPause, bSuspended = FALSE;
+    static BOOL bPaused = TRUE; 	   /* Game pause toggle 	   */
+
+    if (iOption == CHECK)
+	return(bPaused);
+
+    else if (iOption == SUSPEND_ON) {
+	if (bSuspended) return(TRUE);
+	bSuspended = TRUE;
+	bSPause = bPaused;
+	if (bPaused)
+	    return(TRUE);
+	}
+    else if (iOption == SUSPEND_OFF) {
+	if (!bSuspended) return(FALSE);
+	bSuspended = FALSE;
+	if (bSPause)
+	    return(TRUE);
+	else
+	    bPaused = TRUE;
+	}
+
+    else if (iOption == FORCE_PAUSE)
+	if (bPaused) return(TRUE);
+	else bPaused = FALSE;
+    else if (iOption == FORCE_UNPAUSE)
+	if (!bPaused) return(FALSE);
+	else bPaused = TRUE;
+
+
+    if (bSuspended)
+	CheckMenuItem(hwndMenu, IDM_PAUSE, bSPause);
+    else
+	CheckMenuItem(hwndMenu, IDM_PAUSE, !bPaused);
+
+    if (bPaused = !bPaused) {
+	WinStopTimer(hab, hwndClient, ID_TIMER);
+        
+	/* Show the pointer if it is currently hidden */
+        ShowMouse(TRUE);
+        
+	return(TRUE);
+	}
+    else {
+	WinStartTimer(hab, hwndClient, ID_TIMER, iTickLen);
+        
+	/* Hide the pointer if mouse controls are enabled */
+	ShowMouse(FALSE);
+    
+	return(FALSE);
+	}
+}
+
+/****************************************************************************
+ * HideFrameControls                                                        *
+ *  - Hides frame controls by assigning ownership to (invisible) object     *
+ *    window and updating the frame window.                                 *
+ *  - No I/O.                                                               *
+ ****************************************************************************/
+VOID HideFrameControls (VOID)
+{
+    /* I don't believe the following line is required.  Appearantly it was *
+     *   required for correct operation in early versions of OS/2 v1.2     */
+    /* WinSetFocus(HWND_DESKTOP, hwndFrame); */
+
+    WinSetParent(hwndTitleBar, hwndObject, FALSE);
+    WinSetParent(hwndSysMenu, hwndObject, FALSE);
+    WinSetParent(hwndMenu, hwndObject, FALSE);
+    WinSetParent(hwndMinMax, hwndObject, FALSE);
+
+    WinSendMsg(hwndFrame, WM_UPDATEFRAME,
+	(MPARAM) (FCF_TITLEBAR | FCF_SYSMENU | FCF_MINMAX | FCF_MENU), NULL);
+
+}
+
+/****************************************************************************
+ * ShowFrameControls                                                        *
+ *  - Shows frame controls by assigning ownership to frame window and       *
+ *    updating the frame window.                                            *
+ *  - No I/O.                                                               *
+ ****************************************************************************/
+VOID ShowFrameControls (VOID)
+{
+    WinSetParent(hwndTitleBar, hwndFrame, FALSE);
+    WinSetParent(hwndSysMenu, hwndFrame, FALSE);
+    WinSetParent(hwndMenu, hwndFrame, FALSE);
+    WinSetParent(hwndMinMax, hwndFrame, FALSE);
+
+    WinSendMsg(hwndFrame, WM_UPDATEFRAME,
+	(MPARAM) (FCF_TITLEBAR | FCF_SYSMENU | FCF_MINMAX | FCF_MENU), NULL);
+
+    /* Make sure the frame window gets repainted */
+    WinInvalidateRect( hwndFrame , NULL , TRUE ) ;
+
+}
+
+/****************************************************************************
+ * ShowMouse	                                                            *
+ *  - Hides/shows the mouse depending on the state of the game		    *
+ *  - No I/O.                                                               *
+ ****************************************************************************/
+VOID ShowMouse(BOOL bShowMouse)
+{
+    static INT 	  cPointerLvl = 0;	/* Pointer level, 0 = visible 	    */
+    static POINTL ptl;			/* Pointer position when hidden     */
+
+    if (bShowMouse) {
+    	if (cPointerLvl == 1) {
+            cPointerLvl = 0;
+            WinSetPointerPos(HWND_DESKTOP, ptl.x, ptl.y);
+            WinShowPointer(HWND_DESKTOP, TRUE);
+        }
+    } else {
+        if (iGameMode != GAME_MODE_INIT1 && iGameMode != GAME_MODE_INIT2 &&
+            prfProfile.bMOUSECONTROL && cPointerLvl == 0) {
+            cPointerLvl = 1;
+            WinQueryPointerPos(HWND_DESKTOP, &ptl);
+            WinShowPointer(HWND_DESKTOP, FALSE);
+        }
+    }
+}
+
+/****************************************************************************
+ * Initialize                                                               *
+ *  - Performs several application initializations.  Reads profile info,    *
+ *    modifies client window to match it, seeds random number generator,    *
+ *    initializes game data structures, and starts the timer.               *
+ *  - No I/O.                                                               *
+ ****************************************************************************/
+VOID Initialize(VOID)
+{
+    INT   i;
+    ULONG cb;
+
+    /* Read in the profile data if it exists */
+    PrfQueryProfileSize(HINI_USERPROFILE, szClientClass, "Data", &cb);
+    if (cb == sizeof(PROFILEREC))
+	PrfQueryProfileData(HINI_USERPROFILE, szClientClass, "Data",
+			    (PVOID)&prfProfile, &cb);
+/*    else {
+    	prfProfile.bCONTROLS = TRUE;	* Frame controls are visible	   *
+        prfProfile.bBACKGRND = FALSE;	* Don't run in the background      *
+        prfProfile.ulMINMAX = 0L;
+        prfProfile.x  = prfProfile.y  = 0L;
+        prfProfile.cx = prfProfile.cy = 0L;
+        prfProfile.uiSEED = 17;
+        prfProfile.iSHIPS = 3;		* 3 ships per game	    	   *
+        prfProfile.iPHOTONS = 4;	* 4 photons simultaneously 	   *
+        prfProfile.bSHIELD = TRUE;	* Shield available	   	   *
+        prfProfile.bRAPIDFIRE = TRUE;	* Rapidfire available	   	   *
+        prfProfile.iFIRERATE = 8;
+        prfProfile.bMOUSECONTROL = FALSE;	* Keyboard input only	   *
+        prfProfile.keyDEFS[0].vk = VK_LEFT-1;
+        prfProfile.keyDEFS[0].chr = 0;
+        prfProfile.keyDEFS[1].vk = VK_RIGHT-1;
+        prfProfile.keyDEFS[1].chr = 0;
+        prfProfile.keyDEFS[2].vk = VK_UP-1;
+        prfProfile.keyDEFS[2].chr = 0;
+        prfProfile.keyDEFS[3].vk = VK_DOWN-1;
+        prfProfile.keyDEFS[3].chr = 0;
+        prfProfile.keyDEFS[4].vk = VK_SPACE-1;
+        prfProfile.keyDEFS[4].chr = 0;
+        prfProfile.keyDEFS[5].vk = 0;
+        prfProfile.keyDEFS[5].chr = 's';
+        for (i=0;i<10;i++)
+            prfProfile.lSCORES[i] = 0L;
+    } */
+
+    /* Make frame size & position match profile information (or initialize) */
+    if ((prfProfile.ulMINMAX & SWP_MINIMIZE) ||
+	(prfProfile.ulMINMAX & SWP_MAXIMIZE))
+	WinSetWindowPos(hwndFrame, HWND_TOP,
+	    prfProfile.x, prfProfile.y, prfProfile.cx, prfProfile.cy,
+	    SWP_ACTIVATE | SWP_SHOW | SWP_SIZE | SWP_MOVE |
+	    prfProfile.ulMINMAX);
+    else if ((prfProfile.cx != 0) && (prfProfile.cy != 0))
+	WinSetWindowPos(hwndFrame,HWND_TOP,
+	    prfProfile.x,prfProfile.y,prfProfile.cx,prfProfile.cy,
+	    SWP_ACTIVATE | SWP_SHOW | SWP_SIZE | SWP_MOVE);
+    /* Profile information is new.  Rely on PM to size/position the client *
+     *   window this first time.                                           */
+    else
+	WinShowWindow(hwndFrame, TRUE);
+
+    /* Hide controls if hidden at last save                               *
+     * Normally this if block should occur prior to the previous one, but *
+     *   there appears to be a PM v1.2 bug w/hide before WinSetWindowPos: *
+     *   the title bar _looks_ inactive when it is later shown.           */
+    if (!prfProfile.bCONTROLS)
+	HideFrameControls();
+
+    /* Create a help instance */
+    hwndHelp = WinCreateHelpInstance(hab, &hinit);
+    if (hwndHelp == NULLHANDLE) {
+	/* failed to create help instance */
+	WinAlarm(HWND_DESKTOP, WA_WARNING);
+	WinMessageBox(HWND_DESKTOP, NULLHANDLE,
+	    "Please put ASTEROID.HLP in a directory pointed to by the HELP "
+	    "environment variable or in the ASTEROID working directory.",
+	    "Could not find help file",
+	    0, MB_ICONHAND | MB_OK | MB_APPLMODAL);
+	}
+    else
+	WinAssociateHelpInstance(hwndHelp, hwndFrame);
+
+    /* Initialize Menu according to profile info */
+    InitMenu();
+
+    /* Seed the random number generator from seed in profile */
+    srand((unsigned int) prfProfile.uiSEED);
+    prfProfile.uiSEED = (UINT) rand();
+
+    /* Initialize game data structures */
+    WinSendMsg(hwndClient, WM_INITGAME, MPFROMSHORT(0), MPVOID);
+
+    /* Startup a timer for screen updates */
+    TogglePause(FORCE_UNPAUSE);
+    if ((prfProfile.ulMINMAX & SWP_MINIMIZE) && (!prfProfile.bBACKGRND)) {
+	/* Set icon */
+	WinSendMsg(hwndFrame, WM_SETICON,
+	    (MPARAM)WinLoadPointer(HWND_DESKTOP, NULLHANDLE, ID_RESOURCE),
+	    MPVOID);
+
+	TogglePause(SUSPEND_ON);
+	}
+}
+
+/****************************************************************************
+ * InitFonts                                                                *
+ *  - Retrieves font metrics then creates logical fonts.                    *
+ *  - Recieves HPS for GpiQueryFonts call.                                  *
+ ****************************************************************************/
+VOID InitFonts(HPS hps)
+{
+    CHAR       *cp;
+    INT		i;
+    LONG	cFonts;
+    FATTRS	fat;
+    FONTMETRICS afm[2];
+
+    /* Get font metrics for both fonts. */
+    cFonts = 2;
+    GpiQueryFonts(hps, QF_PRIVATE, NULL, &cFonts,
+	(LONG) sizeof(FONTMETRICS), (PFONTMETRICS) afm);
+
+    /* Create both logical fonts. */
+    for (i=0,cp=(CHAR *)&fat;i<sizeof(FATTRS);i++,cp++)
+    	*cp=0;
+    fat.usRecordLength = sizeof(FATTRS);
+    fat.fsFontUse = FATTR_FONTUSE_NOMIX;
+    for (i=0;i<2;i++) {
+	/* Set up FATTRS structure */
+	fat.fsSelection = afm[i].fsSelection;
+	fat.lMatch = afm[i].lMatch;
+	fat.idRegistry = afm[i].idRegistry;
+	fat.usCodePage = afm[i].usCodePage;
+	fat.fsType = afm[i].fsType;
+	fat.lAveCharWidth = afm[i].lAveCharWidth;
+	fat.lMaxBaselineExt = afm[i].lMaxBaselineExt;
+	strcpy(fat.szFacename,afm[i].szFacename);
+	if (fat.lMaxBaselineExt < afm[(i+1)%2].lMaxBaselineExt) {
+	    iSizeSmall = (INT) fat.lMaxBaselineExt;
+	    GpiCreateLogFont(hps, NULL, LCID_SMALL, &fat);
+	    }
+	else {
+	    iSizeLarge = (INT) fat.lMaxBaselineExt;
+	    GpiCreateLogFont(hps, NULL, LCID_LARGE, &fat);
+	    }
+	}
+}
+
+/****************************************************************************
+ * Shutdown                                                                 *
+ *  - Cleans up and terminates ASTEROID, returning any error conditions.    *
+ *  - Receives error code.                                                  *
+ ****************************************************************************/
+VOID Shutdown(ULONG ulErrLevel)
+{
+    /* Stop the timer. */
+    TogglePause(FORCE_PAUSE);
+
+    /* Destroy the help instance if it was created */
+    if (hwndHelp != NULLHANDLE) {
+	WinAssociateHelpInstance(NULLHANDLE, hwndFrame);
+	WinDestroyHelpInstance(hwndHelp);
+    }
+
+    /* Destroy Object and Frame windows. */
+    if (hwndObject != NULLHANDLE)
+	WinDestroyWindow(hwndObject);
+    if (hwndFrame != NULLHANDLE)
+	WinDestroyWindow(hwndFrame);
+
+    /* Destroy the message queue and let PM clean up. */
+    WinDestroyMsgQueue(hmq);
+    WinTerminate(hab);
+
+    /* Return error code if any. */
+    DosExit(EXIT_PROCESS, ulErrLevel);
+}
+

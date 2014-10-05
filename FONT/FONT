@@ -1,0 +1,10 @@
+asteroid.obj : asteroid.asm
+    masm asteroid.asm;
+
+asteroid.exe : asteroid.obj asteroid.def
+    link asteroid,asteroid.exe,,,asteroid.def;
+
+asteroid.fon : asteroid.exe small.fnt large.fnt asteroid.rc
+    rc asteroid.rc
+    copy asteroid.exe ..\asteroid.dll
+    del asteroid.exe

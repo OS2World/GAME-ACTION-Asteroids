@@ -1,0 +1,37 @@
+# IBM Developer's Workframe/2 Make File Creation run at 20:18:05 on 01/27/93
+
+# Make File Creation run in directory:
+#   E:\C\ASTEROID\ASTEROID.230;
+
+.SUFFIXES:
+
+.SUFFIXES: .c .rc
+
+ALL: ASTEROID.EXE \
+     asteroid.RES
+
+asteroid.exe:  \
+  asteroid.OBJ \
+  asteroid.RES \
+  subs.OBJ \
+  asteroid.def \
+  ASTEROID
+   @REM @<<ASTEROID.@0
+     /NOL /PM:PM +
+     asteroid.OBJ +
+     subs.OBJ
+     asteroid.exe
+     
+     
+     asteroid.def;
+<<
+   LINK386.EXE @ASTEROID.@0
+   RC asteroid.RES asteroid.exe
+
+{.}.rc.res:
+   RC -r .\$*.RC
+
+{.}.c.obj:
+   ICC.EXE /Xi /Id:\ibmc\include /Id:\toolkt20\c\os2h /Q /C .\$*.c
+
+!include ASTEROID.DEP

@@ -1,0 +1,10 @@
+NAME        ASTEROID       WINDOWAPI
+
+DESCRIPTION 'Asteroid v2.30 (C) Todd B. Crowe, 1991-1993'
+PROTMODE
+HEAPSIZE    1024
+STACKSIZE   12288
+EXPORTS     ClientWndProc
+	    AboutDlgProc
+	    KeyDlgProc
+

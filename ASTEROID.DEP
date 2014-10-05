@@ -1,0 +1,35 @@
+# IBM Developer's Workframe/2 Make File Creation run at 18:49:10 on 01/24/93
+
+# Make File Creation run in directory:
+#   E:\C\ASTEROID\ASTEROID.230;
+
+# Assumed INCLUDE environment variable path:
+#   D:\ZOROS2\INCLUDE;
+#   D:\IBMC\INCLUDE;
+#   D:\TOOLKT20\C\OS2H;
+#   D:\TOOLKT20\ASM\OS2INC;
+
+
+asteroid.RES:  asteroid.rc  \
+#  {.;$(INCLUDE)}OS2.H  \
+   {.;$(INCLUDE)}PMDEFS.H  \
+   ASTEROID.ICO  \
+   ASTEROID
+
+asteroid.OBJ:  asteroid.c  \
+   {.;d:\ibmc\include;d:\toolkt20\c\os2h;}asteroid.h  \
+#    {d:\ibmc\include;d:\toolkt20\c\os2h;}os2.h  \
+#    {d:\ibmc\include;d:\toolkt20\c\os2h;}stdio.h  \
+#    {d:\ibmc\include;d:\toolkt20\c\os2h;}stdlib.h  \
+#    {d:\ibmc\include;d:\toolkt20\c\os2h;}string.h  \
+   {.;d:\ibmc\include;d:\toolkt20\c\os2h;}pmdefs.h  \
+   ASTEROID
+
+subs.OBJ:  subs.c  \
+   {.;d:\ibmc\include;d:\toolkt20\c\os2h;}asteroid.h  \
+#    {d:\ibmc\include;d:\toolkt20\c\os2h;}os2.h  \
+#    {d:\ibmc\include;d:\toolkt20\c\os2h;}stdio.h  \
+#    {d:\ibmc\include;d:\toolkt20\c\os2h;}stdlib.h  \
+#    {d:\ibmc\include;d:\toolkt20\c\os2h;}string.h  \
+   ASTEROID
+
