@@ -1,4 +1,4 @@
-Game-Asteroids
+Game-Asteroid
 ==============
 
 Asteroids game clone for OS/2. Black &amp; White and linear shapes.
