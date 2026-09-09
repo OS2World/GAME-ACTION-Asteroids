@@ -1,21 +1,16 @@
 .*
 .* ASTEROID.IPP
 .*
-.* IPF tag file for ASTEROID 2.30.
+.* IPF tag file for ASTEROID 2.40.
 .*
 .* Copyright (C) 1992-1993 Todd Crowe,  All Rights Reserved
 .*
 .*
-#define  IPFC
-.imd pmdefs.h
-.*
-.*
 :userdoc.
 :title.Help for ASTEROID
-:body.
 .*
 .*
-:h1 res=&IDH_CLIENTKEYS..Help for Keys
+:h1 res=3.Help for Keys
 :i1 id=Keys.Keys
 :p.ASTEROID allows the user to select which keys control the
 ship.  To change the default keys select the "Keys..." menu item
@@ -80,7 +75,7 @@ the following functions:
 :edl.
 .*
 .*
-:h1 res=&IDH_GAME..Help for Game Control
+:h1 res=100.Help for Game Control
 :i1 id=Game.Game control
 :p.The :hp2.Game:ehp2. menu allows you to start a new game or affect a game
 in progress.
@@ -100,7 +95,7 @@ in progress.
 :edl.
 .*
 .*
-:h2 res=&IDH_START..Help for New Game
+:h2 res=110.Help for New Game
 :i2 refid=Game.Start New Game
 :dl tsize=5 break=all.
 :dt.:hp2.1 Player Game:ehp2.
@@ -112,7 +107,7 @@ in progress.
 :p.If a game is already in progress, :hp2.New:ehp2. will be disabled.
 .*
 .*
-:h2 res=&IDH_FRAME..Help for Frame Controls
+:h2 res=120.Help for Frame Controls
 :i2 refid=Game.Toggle Frame Controls
 :p.If the frame controls are visible, selecting :hp2.Frame Controls:ehp2.
 will make them invisible; if the frame controls are already hidden it will
@@ -121,7 +116,7 @@ make them visible.
 maximize buttons, and the application menu.
 .*
 .*
-:h2 res=&IDH_BACKGRND..Help for Background
+:h2 res=121.Help for Background
 :i2 refid=Game.Background
 :p.When enabled, screen action will continue unless explicitly paused.
 :p.Normally game play is automatically paused when ASTEROID is iconized,
@@ -131,7 +126,7 @@ menus or a dialog box.
 and to be played in iconic form.
 .*
 .*
-:h2 res=&IDH_PAUSE..Help for Pause
+:h2 res=122.Help for Pause
 :i2 refid=Game.Pause Game
 :p.:hp2.Pause:ehp2. pauses (or unpauses) ASTEROID.  If a game is in progress
 all action will be stopped until the game is unpaused.
@@ -140,18 +135,18 @@ all action will be stopped until the game is unpaused.
 <CTRL> + p.
 .*
 .*
-:h2 res=&IDH_STOP..Help for Stop Game
+:h2 res=123.Help for Stop Game
 :i2 refid=Game.Stop Game
 :p.If a game is in progress :hp2.Stop:ehp2. will terminate it.
 :p.If a game is not in progress, :hp2.Stop:ehp2. will be disabled.
 .*
 .*
-:h2 res=&IDH_EXIT..Help for Exit
+:h2 res=124.Help for Exit
 :i2 refid=Game.Exit
 :p.Select :hp2.Exit:ehp2. or press F3 to exit ASTEROID.
 .*
 .*
-:h1 res=&IDH_OPTION..Help for Options
+:h1 res=200.Help for Options
 :i1 id=Options.Options
 :p.The :hp2.Options:ehp2.menu allows you to adjust game play parameters
 and options.
@@ -173,7 +168,7 @@ and options.
 :edl.
 .*
 .*
-:h2 res=&IDH_SHIPS..Help for Ships
+:h2 res=210.Help for Ships
 :i2 refid=Options.Ships
 :p.The :hp2.Ships:ehp2. submenu allows you to select the number of ships
 each player initially receives.
@@ -181,7 +176,7 @@ each player initially receives.
 is :hp2.3:ehp2.)
 .*
 .*
-:h2 res=&IDH_PHOTONS..Help for Photons
+:h2 res=220.Help for Photons
 :i2 refid=Options.Photons
 :p.The :hp2.Photons:ehp2. submenu allows you to select the maximum number
 of photons available at any one time.
@@ -189,7 +184,7 @@ of photons available at any one time.
 :hp2.8:ehp2., the default is :hp2.4:ehp2.)
 .*
 .*
-:h2 res=&IDH_RAPIDFIRE..Help for Rapid Fire
+:h2 res=230.Help for Rapid Fire
 :i2 refid=Options.Rapid Fire
 :p.The :hp2.Rapid Fire:ehp2. option allows you to enable or disable the rapid
 fire feature.
@@ -198,14 +193,14 @@ simply holding down the :hp2.Fire:ehp2. key.
 :p.(By default, rapid fire is enabled)
 .*
 .*
-:h2 res=&IDH_FIRERATE..Help for Fire Rate
+:h2 res=240.Help for Fire Rate
 :i2 refid=Options.Fire Rate
 :p.The :hp2.Fire Rate:ehp2. submenu allows you to set the rate of rapid fire.
 :p.:hp2.Fire Rate:ehp2. is disabled unless :hp2.Rapid Fire:ehp2. is enabled.
 :p.(The default rapid fire rate is :hp2.Slow:ehp2.)
 .*
 .*
-:h2 res=&IDH_MOUSE..Help for Mouse
+:h2 res=260.Help for Mouse
 :i2 refid=Options.Mouse
 :p.The :hp2.Mouse:ehp2. allows you to use a mouse or other pointing device
 to control the ship.
@@ -226,7 +221,7 @@ to control the ship.
 :edl.
 .*
 .*
-:h2 res=&IDH_KEYS..Help for Keys
+:h2 res=270.Help for Keys
 :i2 refid=Options.Redefine Keys
 :p.:hp2.Keys...:ehp2. pops up the Key Definition dialog box which allows you
 to redefine which keys control the ship.
@@ -236,7 +231,7 @@ fields.  If you do not have a mouse you will not be able to redefine the keys.
 dialog box.
 .*
 .*
-:h1 res=&IDH_HELPMENU..Help for Help
+:h1 res=300.Help for Help
 :i1 id=Help.Help
 :p.Get help on how to use help, get extended help, look at the help index,
 or to look at copyright information.
@@ -255,7 +250,7 @@ to use help.
 :edl.
 .*
 .*
-:h2 res=&IDH_HELPFORHELP..Help for Help
+:h2 res=310.Help for Help
 :i2 refid=Help.Help for Help
 :p.:hp2.Help for Help:ehp2. shows what kind of help is available and how to
 use the available help.
@@ -264,32 +259,32 @@ use the available help.
 select it and press <Enter>.
 .*
 .*
-:h2 res=&IDH_EXTENDEDHELP..Extended Help
+:h2 res=311.Extended Help
 :i2 refid=Help.Extended help
 :p.:hp2.Extended Help:ehp2. provides general information about ASTEROID
 :p.To get extended help, click on :hp2.Extended help...:ehp2.
 .*
 .*
-:h2 res=&IDH_KEYSHELP..Help Keys
+:h2 res=312.Help Keys
 :p.Display a list of keys and mouse functions.
 :p.To display the list of keys, click on :hp2.Keys help...:ehp2.
 .*
 .*
-:h2 res=&IDH_HELPINDEX..Help for Help index
+:h2 res=313.Help for Help index
 :i2 refid=Help.Help index
 :p.Display the help index.
 :p.The help index lists titles for all available help by subject.
 :p.To display the help index, click on :hp2.Help index...:ehp2..
 .*
 .*
-:h2 res=&IDH_ABOUT..Help for About
+:h2 res=320.Help for About
 :i2 refid=Help.About
 :p.Display copyright information.
-:p.To display the copyright information, click on :hp2.About:ehp2 or
+:p.To display the copyright information, click on :hp2.About:ehp2. or
 double-click the right mouse button.
 .*
 .*
-:h1 res=&IDH_CLIENTEXTEND..Help for ASTEROID
+:h1 res=2.Help for ASTEROID
 :i1 id=ASTERIOD.ASTEROID
 :p.ASTEROID is an OS/2 Presentation Manager implementation of the 1979
 arcade game Asteroids(tm) by Atari.
@@ -309,7 +304,7 @@ permission.  ASTEROID may not be sold or distributed commercially or
 otherwise for profit.  I reserve all rights and privileges to ASTEROID.
 .*
 .*
-:h1 id=installation hide.Installing ASTEROID
+:h1 res=400 id=installation hide.Installing ASTEROID
 :p.
 :hp2.
 .ce Installation
@@ -330,7 +325,7 @@ fact, everything moves at the same rate on a slow computer as a fast
 computer. On a slow computer the asteroids are just redrawn less often.
 .*
 .*
-:h1 id=features hide.Features
+:h1 res=401 id=features hide.Features
 :p.
 :hp2.
 .ce Features
@@ -361,7 +356,7 @@ the hyperspace drive will slowly recharge the energy reserve.
 :p.Finally, this wonderful online help was added with ASTEROID 2.2.
 .*
 .*
-:h1 id=scoring hide.Scoring
+:h1 res=402 id=scoring hide.Scoring
 :p.
 :hp2.
 .ce Scoring
@@ -377,7 +372,7 @@ the hyperspace drive will slowly recharge the energy reserve.
 :p.A free ship is awarded at 10,000 points and every 10,000 points thereafter.
 .*
 .*
-:h1 id=history hide.A Brief History of ASTEROID
+:h1 res=403 id=history hide.A Brief History of ASTEROID
 :p.
 :hp2.
 .ce A Brief History of ASTEROID
@@ -423,12 +418,12 @@ the hyperspace drive will slowly recharge the energy reserve.
 :esl.
 .*
 .*
-:h1 id=notes hide.Important Notes
+:h1 res=404 id=notes hide.Important Notes
 :p.:hp2.
 .ce Important Notes
 :ehp2.
 :p.
-As with previous versions, ASTEROID v2.30 is released as free software.
+As with previous versions, ASTEROID v2.40 is released as free software.
 I ask for no payments.  If you enjoy ASTEROID, however, I would appreciate
 hearing from you.  Comments and suggests are welcome.
 :p.
@@ -445,6 +440,4 @@ in the past.  Many thanks go to Larry Saloman, Harald Boegeholz, Sean
 Purcell, Timur Tabi, and especially to Bert Moshier.
 .*
 .*
-:index.
 :euserdoc.
-

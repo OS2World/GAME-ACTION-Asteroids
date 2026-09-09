@@ -1,0 +1,8 @@
+# build output
+bin-wat/
+help/asteroid.hlp
+
+# stray artifacts from toolchain experiments
+*.err
+subs.obj
+asteroid.err

@@ -1,0 +1,17 @@
+Open Watcom Make Version 2.0.1
+Portions Copyright (c) 1988-2002 Sybase, Inc. All Rights Reserved.
+Source code is available under the Sybase Open Watcom Public License.
+See http://www.openwatcom.org/ for details.
+	wcc386 -bt=os2 -bm -5r -mf -zq -w4 -e25 -d2 -od -i=src -fo=bin-wat\ASTEROID.OBJ src\ASTEROID.C
+	wcc386 -bt=os2 -bm -5r -mf -zq -w4 -e25 -d2 -od -i=src -fo=bin-wat\SUBS.OBJ src\SUBS.C
+	wrc -r -bt=os2 -fo=bin-wat\ASTEROID.RES -i=src src\ASTEROID.RC
+Open Watcom Windows and OS/2 Resource Compiler Version 2.0.1
+Portions Copyright (c) 1993-2002 Sybase, Inc. All Rights Reserved.
+Source code is available under the Sybase Open Watcom Public License.
+See http://www.openwatcom.org/ for details.
+	wlink option quiet, map system os2v2 pm option heapsize=1024 option stack=12288 export ClientWndProc export AboutDlgProc export KeyDlgProc name bin-wat\ASTEROID.EXE file bin-wat\ASTEROID.OBJ, bin-wat\SUBS.OBJ
+	wrc -q -bt=os2 -fe=bin-wat\ASTEROID.EXE bin-wat\ASTEROID.RES bin-wat\ASTEROID.EXE
+	wasm -bt=os2 -zq -fo=bin-wat\FONTDLL.OBJ src\font\ASTEROID.ASM
+	wlink option quiet, map system os2 dll libpath C:\WATCOM\lib name bin-wat\ASTEROID.DLL file bin-wat\FONTDLL.OBJ
+	wrc -q -bt=os2 -fe=bin-wat\ASTEROID.DLL src\font\ASTEROID.RES bin-wat\ASTEROID.DLL
+	wipfc -q -o bin-wat\ASTEROID.HLP help\ASTEROID.IPF

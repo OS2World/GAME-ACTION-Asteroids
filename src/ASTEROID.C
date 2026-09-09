@@ -72,7 +72,7 @@ void main(void)
 
     hwndFrame = WinCreateStdWindow(
 	HWND_DESKTOP, 0L, &flFrameFlags,
-	szClientClass, szClientClass, 0L, NULLHANDLE, ID_RESOURCE, &hwndClient);
+	szClientClass, ASTEROID_TITLE, 0L, NULLHANDLE, ID_RESOURCE, &hwndClient);
 
     /* If WM_CREATE did not fail, initialize and go into input loop */
     if (hwndFrame != NULLHANDLE) {
@@ -133,10 +133,6 @@ MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
         /* Register/create logical fonts for use */
 	InitFonts(hps);
-
-	/* Display About dialoge box */
-	WinDlgBox(HWND_DESKTOP, hwnd, (PFNWP)AboutDlgProc, NULLHANDLE,
-		  IDD_ABOUT, NULL);
 
 	return 0;
 
@@ -263,7 +259,9 @@ MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
       case WM_BUTTON1UP:
         if (prfProfile.bMOUSECONTROL) {
-	    UPDATE_FIRE(iShipMode[Player], FALSE);
+	    if (!(iShipMode[Player] & CLEARADD) ||
+		(iShipMode[Player] == SHIELD))
+		iShipMode[Player] &= ~FIREPHOTON;
             return (MRESULT)TRUE;
         }
         return 0;
@@ -854,7 +852,8 @@ VOID SetText(HWND hwnd, INT id, KEY *key)
     CHAR tmp[2];
 
     if (key->vk)
-	WinSetWindowText(WinWindowFromID(hwnd, id), VKEY[key->vk].name);
+	WinSetWindowText(WinWindowFromID(hwnd, id),
+			 VKEY[(UCHAR) key->vk].name);
     else if (key->chr) {
 	tmp[0] = key->chr;tmp[1] = 0;
 	WinSetWindowText(WinWindowFromID(hwnd, id), tmp);
@@ -1183,7 +1182,6 @@ VOID ShowMouse(BOOL bShowMouse)
  ****************************************************************************/
 VOID Initialize(VOID)
 {
-    INT   i;
     ULONG cb;
 
     /* Read in the profile data if it exists */
@@ -1192,21 +1190,27 @@ VOID Initialize(VOID)
 	PrfQueryProfileData(HINI_USERPROFILE, szClientClass, "Data",
 			    (PVOID)&prfProfile, &cb);
 
-    /* Make frame size & position match profile information (or initialize) */
-    if ((prfProfile.ulMINMAX & SWP_MINIMIZE) ||
-	(prfProfile.ulMINMAX & SWP_MAXIMIZE))
+    /* Always start the game at a 1024x768 client area, centered on the    *
+     *   screen, clamped if the screen is smaller.                          */
+    {
+	RECTL rcl;
+	LONG  lCxScreen, lCyScreen;
+
+	lCxScreen = WinQuerySysValue(HWND_DESKTOP, SV_CXSCREEN);
+	lCyScreen = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN);
+	rcl.xLeft   = 0L;
+	rcl.yBottom = 0L;
+	rcl.xRight  = 1024L;
+	rcl.yTop    = 768L;
+	WinCalcFrameRect(hwndFrame, &rcl, FALSE);
+	if (rcl.xRight > lCxScreen)  rcl.xRight = lCxScreen;
+	if (rcl.yTop   > lCyScreen)  rcl.yTop   = lCyScreen;
 	WinSetWindowPos(hwndFrame, HWND_TOP,
-	    prfProfile.x, prfProfile.y, prfProfile.cx, prfProfile.cy,
+	    (lCxScreen - rcl.xRight) / 2, (lCyScreen - rcl.yTop) / 2,
+	    rcl.xRight, rcl.yTop,
 	    SWP_ACTIVATE | SWP_SHOW | SWP_SIZE | SWP_MOVE |
 	    prfProfile.ulMINMAX);
-    else if ((prfProfile.cx != 0) && (prfProfile.cy != 0))
-	WinSetWindowPos(hwndFrame,HWND_TOP,
-	    prfProfile.x,prfProfile.y,prfProfile.cx,prfProfile.cy,
-	    SWP_ACTIVATE | SWP_SHOW | SWP_SIZE | SWP_MOVE);
-    /* Profile information is new.  Rely on PM to size/position the client *
-     *   window this first time.                                           */
-    else
-	WinShowWindow(hwndFrame, TRUE);
+    }
 
     /* Hide controls if hidden at last save                               *
      * Normally this if block should occur prior to the previous one, but *

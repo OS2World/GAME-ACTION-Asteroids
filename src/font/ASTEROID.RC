@@ -1,0 +1,19 @@
+/*------------------------------------------------------------------------------
+ * ASTEROID.RC - Resource script for the ASTEROID font module.
+ *
+ * This file is kept for documentation only.  The original shipped with:
+ *
+ *     FONT 100 small.fnt
+ *     FONT 200 large.fnt
+ *
+ * Open Watcom's wrc cannot compile GPI font resources: its OS/2 FONT path
+ * prepends a 118-byte Windows FontInfo header to the payload (corrupting
+ * FAT fonts) and hard-fails on .fnt input with "Error! 16: Unexpected end
+ * of file".  The bundled resources are therefore generated into
+ * ASTEROID.RES (FONTDIRECTORY type 6/name 1; faces type 1000/names 100
+ * and 200) by fontdll_res.py and bound into the DLL at build time.  See
+ * the README for the generation recipe.
+ *------------------------------------------------------------------------------*/
+
+FONT 100 small.fnt
+FONT 200 large.fnt

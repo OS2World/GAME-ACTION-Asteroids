@@ -189,7 +189,7 @@ void DrawScore(HPS hps, INT iMaxx, INT iMaxy, INT iMode)
 	    strcpy(szString[4],"??????????");
 	    szString[3][(Ships[0] < 11) ? Ships[0] : 10] = 0;
 	    szString[4][(Ships[1] < 11) ? Ships[1] : 10] = 0;
-	    sprintf(szString[5],"@1993 TODD CROWE");
+	    szString[5][0] = 0;
 
             /* Other game modes have further refinements */
 	    switch (iGameMode) {

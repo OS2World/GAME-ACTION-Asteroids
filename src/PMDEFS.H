@@ -1,10 +1,12 @@
 /* PM defined constants */
-#define ASTEROID_VER	  "ASTEROID 2.30"
+#define ASTEROID_TITLE	  "ASTEROID"
+#define ASTEROID_VER	  "ASTEROID 2.40"
 
 #define ID_RESOURCE	  1
 #define ID_OBJECT	  2
 #define ID_TIMER	  3
 #define ID_HELPTABLE	  4
+#define ID_BLDLEVEL	  900
 
 #define ID_CLIENTWND	  ID_RESOURCE
 #define IDD_ABOUT	  2

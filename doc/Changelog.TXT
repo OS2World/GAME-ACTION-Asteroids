@@ -1,4 +1,20 @@
-Beta testers:
+
+ASTEROID 2.40 - OS/2 port release notes
+========================================
+	* Re-released with an updated Open Watcom build (wlink/wrc/wasm,
+	  resource-bound PM application).
+	+ Version and author no longer shown in a popup on startup; the
+	  game opens directly into the game window.
+	+ Removed the "@1993 TODD CROWE" message from the bottom of the
+	  game window.
+	+ The game window now always starts at a 1024x768 client area
+	  and is centered (clamped to the screen if it is smaller).
+	+ The title bar now reads "ASTEROID" without the version.
+	+ Help - About reports this release as version 2.40.
+	+ Clean compile with no warnings under Open Watcom (-w4); the
+	  IPF help now compiles with no wipfc warnings.
+	+ The executable carries a BLDLEVEL 2.40 signature (RCDATA
+	  resource), so "bldlevel ASTEROID.EXE" reports vendor/revision.
 
 ASTEROID 2.3 includes the following fixes:
 	+ Player's ship is properly erased when it is turning but not
@@ -54,7 +70,4 @@ ASTEROID 2.3 include the following new features:
 	    hyperspaces two or more times in a row).
 	  - The shield now regenerates progressively slower at higher levels.
 
-Thanks, for volunteering for the ASTEROID 2.3 beta.  It'll be tough, I'm
-sure, but worth the effort.  :-)
 
-- Todd
