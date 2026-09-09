@@ -3,6 +3,8 @@ Game-Asteroid
 
 Asteroids game clone for OS/2. Black &amp; White and linear shapes.
 
+![Asteroids ScreenShot](/doc/Asteroids.png)
+
 LICENSE
 ========
 GNU GPL V2
