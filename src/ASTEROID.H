@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lang.h"
 
 /* Important game constants (pseudo constants are in profile) */
 #define MAXPHOTONS	 8	    /* Max photons (actually an option)    */
@@ -257,6 +258,7 @@ INT    Ships[2];			    /* # ships each player has	   */
 INT    Level[2];			    /* Level each player is on	   */
 LONG   Score[2];			    /* Score of each player	   */
 UINT   uiSpeed = SPEED_NORMAL;		    /* Play speed.		   */
+INT    uiLang  = LANG_ENGLISH;		    /* Interface language.	   */
 
 INT    iGameMode, iGameModeCnt;		    /* Game mode and counter	   */
 UINT   iShipMode[2] = { 0, 0 }; 	    /* Ships modes and counts	   */
@@ -279,6 +281,7 @@ extern INT    Ships[2];
 extern INT    Level[2];
 extern LONG   Score[2];
 extern UINT   uiSpeed;
+extern INT    uiLang;
 
 extern INT    iGameMode, iGameModeCnt;
 extern UINT   iShipMode[2];

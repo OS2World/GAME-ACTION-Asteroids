@@ -38,6 +38,18 @@ Changes in the OS/2 port release 2.40 (see `doc\Changelog.TXT`):
   `bldlevel bin-wat\ASTEROID.EXE` reports vendor "ASTEROID" revision
   2.40 (embedded as an RCDATA resource in src\ASTEROID.RC, resource
   ID_BLDLEVEL = 900 in src\PMDEFS.H).
+- New Options - Language menu switches the interface among English,
+  Deutsch, Espanol, Nederlands and Francais; the choice persists
+  between sessions.  All text is accent-free ASCII (the game draws
+  with its own bitmap fonts).  Language tables live in src\LANG.H;
+  the current language is stored in the OS/2 INI under the
+  application name, key "Language".
+- Fixed the Options menu layout: the "Fire Rate" submenu was declared
+  with Borland-style "-1, MIA_DISABLED" arguments that Open Watcom
+  compiles into a hidden column-break separator, which pushed Shield,
+  Mouse, Keys and Language into a second column.  The declaration is
+  now plain "SUBMENU \"~Fire Rate\", IDM_FIRERATE" and the item is
+  disabled at startup in code when rapid fire is not selected.
 
 FONT MODULE
 ===========

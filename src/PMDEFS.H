@@ -12,6 +12,10 @@
 #define IDD_ABOUT	  2
 #define IDD_KEY 	  3
 
+#define IDC_ABOUT_BY	  2001
+#define IDC_KEY_SEL1	  2010
+#define IDC_KEY_SEL2	  2011
+
 #define IDM_GAME	  5
 #define IDM_START	  10
 #define IDM_START1	  11	    /* These values, relative to IDM_START, */
@@ -44,6 +48,13 @@
 #define IDM_SHIELD	  70
 #define IDM_MOUSE	  71
 #define IDM_KEYS	  72
+
+#define IDM_LANGUAGE	  73
+#define IDM_LANG_ENGLISH  74
+#define IDM_LANG_GERMAN	  75
+#define IDM_LANG_SPANISH  76
+#define IDM_LANG_DUTCH	  77
+#define IDM_LANG_FRENCH	  78
 
 #define IDM_HELPMENU	  80
 #define IDM_HELPFORHELP   81

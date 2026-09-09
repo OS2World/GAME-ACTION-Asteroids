@@ -48,10 +48,10 @@ $(OUT)\ASTEROID.HLP : help\ASTEROID.IPF $(OUT)
 	$(IPFC) -q -o $(OUT)\ASTEROID.HLP help\ASTEROID.IPF
 
 #------------------------------------------------------------ app
-$(OUT)\ASTEROID.OBJ : src\ASTEROID.C src\ASTEROID.H src\PMDEFS.H $(OUT)
+$(OUT)\ASTEROID.OBJ : src\ASTEROID.C src\ASTEROID.H src\PMDEFS.H src\LANG.H $(OUT)
 	$(CC) $(CFLAGS) -fo=$@ src\ASTEROID.C
 
-$(OUT)\SUBS.OBJ : src\SUBS.C src\ASTEROID.H src\PMDEFS.H $(OUT)
+$(OUT)\SUBS.OBJ : src\SUBS.C src\ASTEROID.H src\PMDEFS.H src\LANG.H $(OUT)
 	$(CC) $(CFLAGS) -fo=$@ src\SUBS.C
 
 $(OUT)\ASTEROID.RES : src\ASTEROID.RC src\PMDEFS.H src\ASTEROID.ICO $(OUT)

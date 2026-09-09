@@ -15,6 +15,19 @@ ASTEROID 2.40 - OS/2 port release notes
 	  IPF help now compiles with no wipfc warnings.
 	+ The executable carries a BLDLEVEL 2.40 signature (RCDATA
 	  resource), so "bldlevel ASTEROID.EXE" reports vendor/revision.
+	+ Added an Options - Language menu that switches the complete
+	  interface between English, Deutsch, Espanol, Nederlands and
+	  Francais (sin-accents ASCII text, as required by the game's
+	  bitmap fonts).  The choice persists between sessions.  The
+	  language names themselves stay in their own language so the
+	  correct one can always be found.
+	+ Fixed the Options menu layout: the "Fire Rate" submenu used a
+	  Borland-style "-1, MIA_DISABLED" declaration that Open Watcom
+	  compiles into a column-break separator item, pushing the
+	  Shield, Mouse, Keys and Language items into a second column.
+	  The resource line is now "SUBMENU \"~Fire Rate\", IDM_FIRERATE"
+	  and the item is disabled at startup in code when rapid fire is
+	  not selected.
 
 ASTEROID 2.3 includes the following fixes:
 	+ Player's ship is properly erased when it is turning but not

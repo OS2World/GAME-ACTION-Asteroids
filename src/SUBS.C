@@ -135,7 +135,7 @@ void DrawScore(HPS hps, INT iMaxx, INT iMaxy, INT iMode)
 	   INT    i = 0;                /* Index variable                   */
 	   INT    iFontSize;            /* Assigned font size at execution  */
 
-    static CHAR   szString[11][17];     /* Score text, updated by DRAW_INIT */
+    static CHAR   szString[11][40];	    /* Score text, updated by DRAW_INIT */
     static INT    cLen[11];             /* Text line length,        "       */
     static POINTL ptl[11];              /* Text position,           "       */
     static INT    cLines = 0;           /* Number of text lines,    "       */
@@ -173,7 +173,7 @@ void DrawScore(HPS hps, INT iMaxx, INT iMaxy, INT iMode)
          *   following lines initialize a title and the 10 best score lines */
 	if (iGameMode == GAME_MODE_INIT2) {
 	    cLines = 11;
-	    strcpy(szString[0],"HIGH SCORES");
+	    strcpy(szString[0], GetText(STR_HS_TABLE));
 	    for (i=1;i<11;i++)
 		sprintf(szString[i],"%2d. %5ld %3s", i,
 		    prfProfile.lSCORES[i-1], prfProfile.szINIT[i-1]);
@@ -196,14 +196,14 @@ void DrawScore(HPS hps, INT iMaxx, INT iMaxy, INT iMode)
               /* Screen to prompt for game selection */
 	      case GAME_MODE_INIT1:
 		cLines = 8;
-		strcpy(szString[6],"PRESS 1 OR 2");
-		strcpy(szString[7],"TO START GAME");
+		strcpy(szString[6], GetText(STR_PRESS1));
+		strcpy(szString[7], GetText(STR_PRESS2));
 		break;
               /* Screen to signal next player's turn */
 	      case GAME_MODE_NEXT:
 		if (cPlayers == 2) {
 		    cLines = 7;
-		    sprintf(szString[6],"PLAYER %d",Player+1);
+		    sprintf(szString[6], GetText(STR_PLAYER), Player+1);
 		    }
 		else
 		    cLines = 6;
@@ -211,8 +211,8 @@ void DrawScore(HPS hps, INT iMaxx, INT iMaxy, INT iMode)
               /* Game over screen */
 	      case GAME_MODE_OVER:
 		cLines = 8;
-		sprintf(szString[6],"GAME OVER");
-		sprintf(szString[7],"PLAYER %d",Player+1);
+		sprintf(szString[6], "%s", GetText(STR_GAMEOVER));
+		sprintf(szString[7], GetText(STR_PLAYER), Player+1);
 		break;
 	      default:
 		cLines = 6;
@@ -346,14 +346,11 @@ void DrawHighScore(HPS hps, INT iMaxx, INT iMaxy, INT iMode)
 	   INT    i = 0;                /* Index variable                   */
 	   INT    iFontSize;            /* Assigned font size at execution  */
 
-    static POINTL ptl[2];
+    static POINTL ptl[2];               /* Text positions                  */
     static INT    iIndex = 0;               /* Position in array of initials*/
-    static CHAR   szPlyr[9] = "        ";   /* Contains "Player %d",Player  */
+    static CHAR   szPlyr[16] = "        ";  /* Contains "Player %d",Player  */
     static CHAR   szInit[6] = "_ _ _";      /* For plotting initials        */
-    static CHAR   szText[4][39] = { "YOUR SCORE IS ONE OF THE TEN BEST     ",
-				    "PLEASE ENTER YOUR INITIALS            ",
-				    "PUSH ROTATE TO SELECT LETTER          ",
-				    "PUSH HYPERSPACE WHEN LETTER IS CORRECT" };
+    static CHAR   szText[4][39];            /* Language-dependent messages  */
 
     /* Pick size of text to make sure everything will fit */
     if ((iMaxx > 40 * iSizeLarge) && (iMaxy > 16*iSizeLarge)) {
@@ -377,23 +374,25 @@ void DrawHighScore(HPS hps, INT iMaxx, INT iMaxy, INT iMode)
        *   old information must be removed.                          */
       case DRAW_REINIT:
 	GpiSetColor(hps,CLR_BLACK);
-	GpiCharStringAt(hps,&ptl[0],8,szPlyr);
+	GpiCharStringAt(hps,&ptl[0],strlen(szPlyr),szPlyr);
 	GpiCharStringAt(hps,&ptl[1],5,szInit);
 
       /* Set up text strings for current player, and draw them on the screen */
       case DRAW_INIT:
 	GpiSetColor(hps,CLR_WHITE);
-	ptl[0].x = (LONG) (iMaxx/2 - 19*iFontSize);
+	for (i=0;i<4;i++)
+	    strcpy(szText[i], GetText(STR_HS_1+i));
 	ptl[0].y = (LONG) (iMaxy/2 + 4*iFontSize);
 	for (i=0;i<4;i++) {
 	    ptl[0].y -= (LONG) (2*iFontSize);
-	    GpiCharStringAt(hps,&ptl[0],38,szText[i]);
+	    ptl[0].x = (LONG) (iMaxx - strlen(szText[i])*iFontSize) / 2L;
+	    GpiCharStringAt(hps,&ptl[0],strlen(szText[i]),szText[i]);
 	    }
 
-	sprintf(szPlyr,"PLAYER %d",Player+1);
-	ptl[0].x = (LONG) (iMaxx/2 - 4*iFontSize);
+	sprintf(szPlyr, GetText(STR_PLAYER), Player+1);
+	ptl[0].x = (LONG) (iMaxx - strlen(szPlyr)*iFontSize) / 2L;
 	ptl[0].y = (LONG) (iMaxy/2 + 7*iFontSize);
-	GpiCharStringAt(hps,&ptl[0],8,szPlyr);
+	GpiCharStringAt(hps,&ptl[0],strlen(szPlyr),szPlyr);
 
 	/* SHIELD mode is ignored, this is used basically to "zero" the *
          *   input queue.                                               */

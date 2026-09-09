@@ -28,6 +28,7 @@ VOID ProcessChar(CHAR, BOOL, CHAR, BOOL);
 VOID SetText(HWND, INT, KEY *);
 VOID InitFonts(HPS);
 VOID InitMenu(VOID);
+VOID ApplyLanguage(VOID);
 VOID DoCommand(HWND, ULONG, MPARAM, MPARAM);
 BOOL TogglePause(INT);
 VOID HideFrameControls(VOID);
@@ -124,8 +125,8 @@ MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             WinReleasePS(hps);
 	    WinAlarm(HWND_DESKTOP, WA_WARNING);
 	    WinMessageBox(HWND_DESKTOP,NULLHANDLE,
-		"Please put ASTEROID.DLL in a directory in your LIBPATH.",
-		"Error reading ASTEROID.DLL",
+		GetText(STR_ERR_DLL1),
+		GetText(STR_ERR_DLL2),
 		0,MB_ICONHAND|MB_OK|MB_APPLMODAL);
 	    WinPostMsg(hwnd,WM_QUIT,(MPARAM) 0L,(MPARAM) 0L);
 	    return (MRESULT) TRUE;
@@ -725,6 +726,13 @@ VOID ProcessChar(CHAR vkey, BOOL vkv, CHAR chr, BOOL keydown)
 MRESULT EXPENTRY AboutDlgProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
     switch (msg) {
+      /* Set the text in the language of the user's choice */
+      case WM_INITDLG:
+	WinSetDlgItemText(hwnd, IDC_ABOUT_BY, GetText(STR_ABOUT_BY));
+	WinSetDlgItemText(hwnd, DID_OK,      GetText(STR_ABOUT_OK));
+	WinSetDlgItemText(hwnd, DID_CANCEL,  GetText(STR_ABOUT_EXIT));
+	return 0;
+
       case WM_COMMAND:
         switch (COMMANDMSG(&msg)->cmd) {
 	  case DID_CANCEL:
@@ -753,6 +761,19 @@ MRESULT EXPENTRY KeyDlgProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
     switch (msg) {
       case WM_INITDLG:
+	/* Set the text in the language of the user's choice */
+	WinSetWindowText(hwnd, GetText(STR_KEYS_CAPTION));
+	WinSetDlgItemText(hwnd, IDC_KEY_SEL1, GetText(STR_KEYS_SEL1));
+	WinSetDlgItemText(hwnd, IDC_KEY_SEL2, GetText(STR_KEYS_SEL2));
+	WinSetDlgItemText(hwnd, KEY_LEFT,   GetText(STR_KEYS_LEFT));
+	WinSetDlgItemText(hwnd, KEY_RIGHT,  GetText(STR_KEYS_RIGHT));
+	WinSetDlgItemText(hwnd, KEY_THRUST, GetText(STR_KEYS_THRUST));
+	WinSetDlgItemText(hwnd, KEY_HYPER,  GetText(STR_KEYS_HYPER));
+	WinSetDlgItemText(hwnd, KEY_FIRE,   GetText(STR_KEYS_FIRE));
+	WinSetDlgItemText(hwnd, KEY_SHIELD, GetText(STR_KEYS_SHIELD));
+	WinSetDlgItemText(hwnd, DID_OK,     GetText(STR_KEYS_OK));
+	WinSetDlgItemText(hwnd, DID_CANCEL, GetText(STR_KEYS_CANCEL));
+
 	/* Set the associated text for each of the radio buttons */
 	for (i=0;i<KEYS;i++) {
 	    keyTmp[i] = prfProfile.keyDEFS[i];
@@ -875,11 +896,16 @@ VOID InitMenu(VOID)
 	CheckMenuItem(hwndMenu, IDM_RAPIDFIRE, TRUE);
 	EnableMenuItem(hwndMenu, IDM_FIRERATE, TRUE);
 	}
+    else
+	EnableMenuItem(hwndMenu, IDM_FIRERATE, FALSE);
     CheckMenuItem(hwndMenu, IDM_FIRERATE+prfProfile.iFIRERATE, TRUE);
     if (prfProfile.bSHIELD)
 	CheckMenuItem(hwndMenu, IDM_SHIELD, TRUE);
     if (prfProfile.bMOUSECONTROL)
         CheckMenuItem(hwndMenu, IDM_MOUSE, TRUE);
+
+    /* Check the currently selected language */
+    CheckMenuItem(hwndMenu, IDM_LANG_ENGLISH + uiLang, TRUE);
 
     /* If help instance creation failed disable the help menu items */
     if (hwndHelp == NULLHANDLE) {
@@ -891,6 +917,29 @@ VOID InitMenu(VOID)
 
     /* Set background execution toggle */
     CheckMenuItem(hwndMenu, IDM_BACKGRND, prfProfile.bBACKGRND);
+}
+
+/****************************************************************************
+ * ApplyLanguage                                                            *
+ *  - Sets every menu item's text from the current language table.  The     *
+ *    STR_MENU_* identifiers are enumerated in menu order, so the id list   *
+ *    below mirrors that order exactly.                                    *
+ ****************************************************************************/
+VOID ApplyLanguage(VOID)
+{
+    static const ULONG aidMenu[STR_MENU_ABOUT+1] = {
+	IDM_GAME, IDM_START, IDM_START1, IDM_START2, IDM_FRAME, IDM_BACKGRND,
+	IDM_PAUSE, IDM_STOP, IDM_EXIT, IDM_OPTION, IDM_SHIPS, IDM_PHOTONS,
+	IDM_RAPIDFIRE, IDM_FIRERATE, IDM_SLOWRATE, IDM_MEDRATE, IDM_FASTRATE,
+	IDM_SHIELD, IDM_MOUSE, IDM_KEYS, IDM_LANGUAGE, IDM_HELPMENU,
+	IDM_HELPFORHELP, IDM_EXTENDEDHELP, IDM_KEYSHELP, IDM_HELPINDEX,
+	IDM_ABOUT };
+    ULONG i;
+
+    for (i = STR_MENU_GAME; i <= STR_MENU_ABOUT; i++)
+	WinSendMsg(hwndMenu, MM_SETITEMTEXT,
+	    MPFROM2SHORT((USHORT) aidMenu[i], TRUE),
+	    (MPARAM) apLang[uiLang][i]);
 }
 
 /****************************************************************************
@@ -977,6 +1026,19 @@ VOID DoCommand(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	/* Pop up key definition dialog box */
 	WinDlgBox(HWND_DESKTOP, hwnd, (PFNWP)KeyDlgProc, NULLHANDLE, IDD_KEY,
         	  NULL);
+	break;
+
+      case IDM_LANG_ENGLISH: case IDM_LANG_GERMAN:
+      case IDM_LANG_SPANISH: case IDM_LANG_DUTCH:
+      case IDM_LANG_FRENCH:
+	/* Switch the interface language and remember the choice */
+	CheckMenuItem(hwndMenu, IDM_LANG_ENGLISH + uiLang, FALSE);
+	uiLang = SHORT1FROMMP(mp1) - IDM_LANG_ENGLISH;
+	CheckMenuItem(hwndMenu, IDM_LANG_ENGLISH + uiLang, TRUE);
+	PrfWriteProfileData(HINI_USERPROFILE, szClientClass, "Language",
+			    (PVOID) &uiLang, sizeof(uiLang));
+	ApplyLanguage();
+	WinSendMsg(hwnd, WM_PAINT, MPVOID, MPVOID);
 	break;
 
       case IDM_FRAME:
@@ -1190,6 +1252,14 @@ VOID Initialize(VOID)
 	PrfQueryProfileData(HINI_USERPROFILE, szClientClass, "Data",
 			    (PVOID)&prfProfile, &cb);
 
+    /* Read the interface language, defaulting to English */
+    cb = sizeof(uiLang);
+    uiLang = LANG_ENGLISH;
+    PrfQueryProfileData(HINI_USERPROFILE, szClientClass, "Language",
+			(PVOID) &uiLang, &cb);
+    if (uiLang >= LANG_COUNT)
+	uiLang = LANG_ENGLISH;
+
     /* Always start the game at a 1024x768 client area, centered on the    *
      *   screen, clamped if the screen is smaller.                          */
     {
@@ -1225,9 +1295,8 @@ VOID Initialize(VOID)
 	/* failed to create help instance */
 	WinAlarm(HWND_DESKTOP, WA_WARNING);
 	WinMessageBox(HWND_DESKTOP, NULLHANDLE,
-	    "Please put ASTEROID.HLP in a directory pointed to by the HELP "
-	    "environment variable or in the ASTEROID working directory.",
-	    "Could not find help file",
+	    GetText(STR_ERR_HLP1),
+	    GetText(STR_ERR_HLP2),
 	    0, MB_ICONHAND | MB_OK | MB_APPLMODAL);
 	}
     else
@@ -1235,6 +1304,9 @@ VOID Initialize(VOID)
 
     /* Initialize Menu according to profile info */
     InitMenu();
+
+    /* Put the menu text in the language of the user's choice */
+    ApplyLanguage();
 
     /* Seed the random number generator from seed in profile */
     srand((unsigned int) prfProfile.uiSEED);
