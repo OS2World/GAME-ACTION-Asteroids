@@ -1,5 +1,5 @@
 #----------------------------------------------------------------------#
-#  ASTEROID 2.30 - OS/2 port build (Open Watcom)                      #
+#  ASTEROID 2.41 - OS/2 port build (Open Watcom)                      #
 #                                                                      #
 #  Targets:                                                            #
 #    all      -> ASTEROID.EXE (PM app, bind resources)                 #
@@ -8,7 +8,7 @@
 #    app      -> ASTEROID.EXE only                                     #
 #    fontdll  -> ASTEROID.DLL only                                     #
 #    help     -> ASTEROID.HLP only                                     #
-#    clean    -> remove everything under bin-wat\                      #
+#    clean    -> remove everything under bin\                      #
 #                                                                      #
 #  Notes:                                                              #
 #    - Run via compile.cmd (sets WATCOM/INCLUDE/PATH).                 #
@@ -28,9 +28,9 @@ WLINK     = wlink
 WRC       = wrc
 IPFC      = wipfc
 
-OUT       = bin-wat
+OUT       = bin
 
-CFLAGS    = -bt=os2 -bm -5r -mf -zq -w4 -e25 -d2 -od -i=src
+CFLAGS    = -bt=os2 -5r -mf -zq -w4 -e25 -Oaxt -d0 -i=src
 AFLAGS    = -bt=os2 -zq
 LFLAGS    = option quiet, map
 RCFLAGS   = -r -bt=os2
@@ -58,7 +58,7 @@ $(OUT)\ASTEROID.RES : src\ASTEROID.RC src\PMDEFS.H src\ASTEROID.ICO $(OUT)
 	$(WRC) $(RCFLAGS) -fo=$@ -i=src src\ASTEROID.RC
 
 $(OUT)\ASTEROID.EXE : $(OUT)\ASTEROID.OBJ $(OUT)\SUBS.OBJ $(OUT)\ASTEROID.RES
-	$(WLINK) $(LFLAGS) system os2v2 pm option heapsize=1024 option stack=12288 export ClientWndProc export AboutDlgProc export KeyDlgProc name $(OUT)\ASTEROID.EXE file $(OUT)\ASTEROID.OBJ, $(OUT)\SUBS.OBJ
+	$(WLINK) $(LFLAGS) system os2v2 pm option heapsize=1024 option stack=65536 export ClientWndProc export AboutDlgProc export KeyDlgProc name $(OUT)\ASTEROID.EXE file $(OUT)\ASTEROID.OBJ, $(OUT)\SUBS.OBJ
 	$(WRC) $(BINDWF) -fe=$@ $(OUT)\ASTEROID.RES $@
 
 #---------------------------------------------------------- font dll
@@ -81,11 +81,11 @@ help      : $(OUT)\ASTEROID.HLP
 stage     : $(OUT)\ASTEROID.OBJ $(OUT)\SUBS.OBJ $(OUT)\ASTEROID.RES $(OUT)\FONTDLL.OBJ $(OUT)\ASTEROID.HLP
 
 clean     :
-	@if exist bin-wat del bin-wat\ASTEROID.EXE >nul
-	@if exist bin-wat del bin-wat\ASTEROID.DLL >nul
-	@if exist bin-wat del bin-wat\ASTEROID.HLP >nul
-	@if exist bin-wat del bin-wat\ASTEROID.RES >nul
-	@if exist bin-wat del bin-wat\ASTEROID.OBJ >nul
-	@if exist bin-wat del bin-wat\SUBS.OBJ >nul
-	@if exist bin-wat del bin-wat\FONTDLL.OBJ >nul
-	@if exist bin-wat rd bin-wat >nul
+	@if exist bin del bin\ASTEROID.EXE >nul
+	@if exist bin del bin\ASTEROID.DLL >nul
+	@if exist bin del bin\ASTEROID.HLP >nul
+	@if exist bin del bin\ASTEROID.RES >nul
+	@if exist bin del bin\ASTEROID.OBJ >nul
+	@if exist bin del bin\SUBS.OBJ >nul
+	@if exist bin del bin\FONTDLL.OBJ >nul
+	@if exist bin rd bin >nul

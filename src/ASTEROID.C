@@ -1030,7 +1030,7 @@ VOID DoCommand(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
       case IDM_LANG_ENGLISH: case IDM_LANG_GERMAN:
       case IDM_LANG_SPANISH: case IDM_LANG_DUTCH:
-      case IDM_LANG_FRENCH:
+      case IDM_LANG_FRENCH:  case IDM_LANG_ITALIAN:
 	/* Switch the interface language and remember the choice */
 	CheckMenuItem(hwndMenu, IDM_LANG_ENGLISH + uiLang, FALSE);
 	uiLang = SHORT1FROMMP(mp1) - IDM_LANG_ENGLISH;

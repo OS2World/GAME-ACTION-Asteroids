@@ -1,9 +1,8 @@
 NAME        ASTEROID       WINDOWAPI
 
-DESCRIPTION 'Asteroid v2.40'
 PROTMODE
 HEAPSIZE    1024
-STACKSIZE   12288
+STACKSIZE   65536
 EXPORTS     ClientWndProc
 	    AboutDlgProc
 	    KeyDlgProc

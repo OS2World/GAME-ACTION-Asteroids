@@ -13,7 +13,8 @@
 #define LANG_SPANISH	2
 #define LANG_DUTCH	3
 #define LANG_FRENCH	4
-#define LANG_COUNT	5
+#define LANG_ITALIAN	5
+#define LANG_COUNT	6
 
 /* String identifiers, kept in menu order first (see ApplyLanguage) */
 enum {
@@ -170,6 +171,32 @@ CHAR *apLang[LANG_COUNT][STR_COUNT] = {
     "MERCI D'ENTRER VOS INITIALES",
     "TOURNEZ POUR CHOISIR LA LETTRE",
     "HYPERSPACE SI LA LETTRE EST CORRECTE"
+  },
+  {
+    /* Italiano */
+    "~Gioco", "~Nuovo", "~1 Giocatore\t1", "~2 Giocatori\t2",
+    "~Controlli Cornice\t^F", "~Sfondo\t^B", "~Pausa\t^P",
+    "~Interrompi", "~Esci\tF3", "~Opzioni", "~Navi", "~Fotoni",
+    "~Fuoco Rapido", "Vel~ocita Fuoco", "~Lento", "~Medio", "~Veloce",
+    "~Scudo", "~Mouse\t^M", "Tas~ti...\t^K", "~Lingua",
+    "~Aiuto", "~Aiuto per aiuto...", "Aiuto ~esteso...",
+    "Aiuto sui ~tasti...", "~Indice aiuto...", "~Informazioni...",
+    "DI", "OK", "ESCI",
+    "Definizione Tasti", "Seleziona il tasto da cambiare,",
+    "poi premi il nuovo.", "Gira a sinistra",
+    "Gira a destra", "Propulsione", "Iperspazio", "Spara",
+    "Scudo", "OK", "Annulla",
+    "Metti ASTEROID.DLL in una cartella nella LIBPATH.",
+    "Errore nella lettura di ASTEROID.DLL",
+    "Metti ASTEROID.HLP in una cartella indicata dalla variabile "
+    "HELP o nella cartella di ASTEROID.",
+    "File di aiuto non trovato",
+    "PUNTEGGI MIGLIORI", "PREMI 1 O 2", "PER INIZIARE",
+    "FINE GIOCO", "GIOCATORE %d",
+    "IL TUO PUNTEGGIO E TRA I DIECI MIGLIORI",
+    "INSERISCI LE TUE INIZIALI",
+    "RUOTA PER SCEGLIERE LA LETTERA",
+    "PREMI IPERSPAZIO SE LETTERA CORRETTA"
   }
 };
 #else

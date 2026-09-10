@@ -1,5 +1,6 @@
 # build output
-bin-wat/
+bin/
+compile-wat.log
 help/asteroid.hlp
 
 # stray artifacts from toolchain experiments

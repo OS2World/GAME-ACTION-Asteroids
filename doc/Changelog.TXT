@@ -1,4 +1,19 @@
 
+ASTEROID 2.41 - changes from 2.40
+===================================
+	+ Added Italian (Italiano) to the Language menu; all six
+	  languages now supported: English, Deutsch, Espanol,
+	  Nederlands, Francais, Italiano.
+	+ Stack size increased from 12288 to 65536 bytes.
+	+ DESCRIPTION removed from .def file (BLDLEVEL is in RCDATA).
+	+ Build flags: removed -bm (was harmless but not needed for PM),
+	  switched from -d2 -od (debug) to -Oaxt -d0 (optimised release).
+	+ Build script (compile.cmd) auto-detects WATCOM installation,
+	  writes full build log to compile-wat.log, and exits non-zero
+	  on failure.
+	+ Output directory renamed from bin-wat to bin.
+	+ BLDLEVEL updated to 2.41.
+
 ASTEROID 2.40 - OS/2 port release notes
 ========================================
 	* Re-released with an updated Open Watcom build (wlink/wrc/wasm,

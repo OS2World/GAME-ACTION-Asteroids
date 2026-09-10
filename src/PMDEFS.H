@@ -1,6 +1,6 @@
 /* PM defined constants */
 #define ASTEROID_TITLE	  "ASTEROID"
-#define ASTEROID_VER	  "ASTEROID 2.40"
+#define ASTEROID_VER	  "ASTEROID 2.41"
 
 #define ID_RESOURCE	  1
 #define ID_OBJECT	  2
@@ -55,6 +55,7 @@
 #define IDM_LANG_SPANISH  76
 #define IDM_LANG_DUTCH	  77
 #define IDM_LANG_FRENCH	  78
+#define IDM_LANG_ITALIAN  79
 
 #define IDM_HELPMENU	  80
 #define IDM_HELPFORHELP   81
