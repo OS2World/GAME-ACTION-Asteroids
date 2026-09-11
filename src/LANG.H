@@ -44,10 +44,10 @@ CHAR *apLang[LANG_COUNT][STR_COUNT] = {
   {
     /* English */
     "~Game", "~New", "~1 Player Game\t1", "~2 Player Game\t2",
-    "~Frame Controls\t^F", "~Background\t^B", "~Pause Game\t^P",
-    "S~top Game", "E~xit\tF3", "~Options", "~Ships", "~Photons",
+    "~Frame Controls\tCtrl+F", "~Background Run\tCtrl+B", "~Pause Game\tCtrl+P",
+    "S~top Game", "E~xit\tCtrl+X", "~Options", "~Ships", "~Photons",
     "~Rapid Fire", "~Fire Rate", "~Slow", "~Medium", "~Fast",
-    "S~hield", "~Mouse\t^M", "Keys...\t^K", "~Language",
+    "S~hield", "~Mouse\tCtrl+M", "Keys...\tCtrl+K", "~Language",
     "~Help", "~Help for help...", "~Extended help...", "~Keys help...",
     "Help ~index...", "~About...",
     "BY", "OK", "EXIT",
@@ -69,10 +69,10 @@ CHAR *apLang[LANG_COUNT][STR_COUNT] = {
   {
     /* Deutsch */
     "~Spiel", "~Neu", "~1-Spieler-Spiel\t1", "~2-Spieler-Spiel\t2",
-    "~Rahmensteuerung\t^F", "~Hintergrund\t^B", "~Pause\t^P",
-    "Spiel st~oppen", "~Beenden\tF3", "~Optionen", "S~chiffe",
+    "~Rahmensteuerung\tCtrl+F", "~Hintergrundlauf\tCtrl+B", "~Pause\tCtrl+P",
+    "Spiel st~oppen", "~Beenden\tCtrl+X", "~Optionen", "S~chiffe",
     "~Photonen", "~Dauerfeuer", "Feuer~rate", "~Langsam", "~Mittel",
-    "~Schnell", "~Schild", "~Maus\t^M", "T~asten...\t^K",
+    "~Schnell", "~Schild", "~Maus\tCtrl+M", "T~asten...\tCtrl+K",
     "Sp~rache", "~Hilfe", "Hil~fe zur Hilfe...", "~Erweiterte Hilfe...",
     "T~astenhilfe...", "Hilfe~index...", "~Info...",
     "VON", "OK", "BEENDEN",
@@ -96,10 +96,10 @@ CHAR *apLang[LANG_COUNT][STR_COUNT] = {
   {
     /* Espanol */
     "~Juego", "~Nuevo", "~1 Jugador\t1", "~2 Jugadores\t2",
-    "~Marco\t^F", "~Fondo\t^B", "~Pausa\t^P", "D~etener",
-    "~Salir\tF3", "~Opciones", "~Naves", "~Fotones", "~Tiro Rapido",
+    "~Marco\tCtrl+F", "~Fondo Activo\tCtrl+B", "~Pausa\tCtrl+P", "D~etener",
+    "~Salir\tCtrl+X", "~Opciones", "~Naves", "~Fotones", "~Tiro Rapido",
     "Velocidad de ~disparo", "~Lento", "~Medio", "~Rapido",
-    "~Escudo", "~Raton\t^M", "T~eclas...\t^K", "~Idioma",
+    "~Escudo", "~Raton\tCtrl+M", "T~eclas...\tCtrl+K", "~Idioma",
     "~Ayuda", "Ay~uda para ayuda...", "Ayuda e~xtendida...",
     "Ayuda de te~clas...", "Ayuda in~dice...", "~Acerca de...",
     "POR", "ACEPTAR", "SALIR",
@@ -122,10 +122,10 @@ CHAR *apLang[LANG_COUNT][STR_COUNT] = {
   {
     /* Nederlands */
     "~Spel", "~Nieuw", "~1 Speler\t1", "~2 Spelers\t2",
-    "~Frame besturing\t^F", "~Achtergrond\t^B", "~Pauze\t^P",
-    "Spel st~oppen", "Afsl~uiten\tF3", "~Opties", "~Schepen",
+    "~Frame besturing\tCtrl+F", "~Achtergrond Actief\tCtrl+B", "~Pauze\tCtrl+P",
+    "Spel st~oppen", "Afsl~uiten\tCtrl+X", "~Opties", "~Schepen",
     "~Fotonen", "S~nelvuur", "Vu~urtempo", "~Langzaam", "~Gemiddeld",
-    "~Snel", "Sc~hild", "~Muis\t^M", "T~oetsen...\t^K", "~Taal",
+    "~Snel", "Sc~hild", "~Muis\tCtrl+M", "T~oetsen...\tCtrl+K", "~Taal",
     "~Handleiding", "~Handleiding voor hulp...",
     "~Uitgebreide handleiding...", "Toetsenh~ulp...",
     "Hand~leidingsindex...", "~Over...",
@@ -149,10 +149,10 @@ CHAR *apLang[LANG_COUNT][STR_COUNT] = {
   {
     /* Francais */
     "~Jeu", "~Nouveau", "~1 Joueur\t1", "~2 Joueurs\t2",
-    "~Cadre\t^F", "~Arriere-plan\t^B", "~Pause\t^P", "A~rreter",
-    "~Quitter\tF3", "~Options", "~Vaisseaux", "~Photons",
+    "~Cadre\tCtrl+F", "~Arriere-plan Actif\tCtrl+B", "~Pause\tCtrl+P", "A~rreter",
+    "~Quitter\tCtrl+X", "~Options", "~Vaisseaux", "~Photons",
     "~Tir rapide", "~Cadence", "~Lent", "~Moyen", "~Rapide",
-    "~Bouclier", "~Souris\t^M", "Tou~ches...\t^K", "~Langue",
+    "~Bouclier", "~Souris\tCtrl+M", "Tou~ches...\tCtrl+K", "~Langue",
     "~Aide", "~Aide pour aider...", "Aide e~tendue...",
     "Aide sur les t~ouches...", "Aide in~dex...", "A ~propos...",
     "PAR", "OK", "QUITTER",
@@ -175,10 +175,10 @@ CHAR *apLang[LANG_COUNT][STR_COUNT] = {
   {
     /* Italiano */
     "~Gioco", "~Nuovo", "~1 Giocatore\t1", "~2 Giocatori\t2",
-    "~Controlli Cornice\t^F", "~Sfondo\t^B", "~Pausa\t^P",
-    "~Interrompi", "~Esci\tF3", "~Opzioni", "~Navi", "~Fotoni",
+    "~Controlli Cornice\tCtrl+F", "~Sfondo Attivo\tCtrl+B", "~Pausa\tCtrl+P",
+    "~Interrompi", "~Esci\tCtrl+X", "~Opzioni", "~Navi", "~Fotoni",
     "~Fuoco Rapido", "Vel~ocita Fuoco", "~Lento", "~Medio", "~Veloce",
-    "~Scudo", "~Mouse\t^M", "Tas~ti...\t^K", "~Lingua",
+    "~Scudo", "~Mouse\tCtrl+M", "Tas~ti...\tCtrl+K", "~Lingua",
     "~Aiuto", "~Aiuto per aiuto...", "Aiuto ~esteso...",
     "Aiuto sui ~tasti...", "~Indice aiuto...", "~Informazioni...",
     "DI", "OK", "ESCI",
