@@ -720,30 +720,19 @@ VOID ProcessChar(CHAR vkey, BOOL vkv, CHAR chr, BOOL keydown)
 
 /****************************************************************************
  * AboutDlgProc                                                             *
- *  - Typical PM dialog window procedure.  (Almost skeletal)                *
- *  - Standard dialog window I/O                                            *
  ****************************************************************************/
 MRESULT EXPENTRY AboutDlgProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
     switch (msg) {
-      /* Set the text in the language of the user's choice */
-      case WM_INITDLG:
-	WinSetDlgItemText(hwnd, IDC_ABOUT_BY, GetText(STR_ABOUT_BY));
-	WinSetDlgItemText(hwnd, DID_OK,      GetText(STR_ABOUT_OK));
-	WinSetDlgItemText(hwnd, DID_CANCEL,  GetText(STR_ABOUT_EXIT));
-	return 0;
-
       case WM_COMMAND:
         switch (COMMANDMSG(&msg)->cmd) {
-	  case DID_CANCEL:
-            /* On cancel, tell application to terminate */
-            WinPostMsg(hwndFrame, WM_QUIT, 0L, 0L);
-	  case DID_OK:
+          case DID_OK:
+          case DID_CANCEL:
             WinDismissDlg(hwnd, 0);
             return 0;
-          }
+        }
         break;
-      }
+    }
     return WinDefDlgProc(hwnd, msg, mp1, mp2);
 }
 
