@@ -7,10 +7,10 @@ Asteroids game clone for OS/2. Black &amp; White and linear shapes.
 
 LICENSE
 ========
-GNU GPL V2
+GNU GPL V3
 
 
-BUILD (Open Watcom 1.9, OS/2)
+BUILD (Open Watcom, OS/2)
 =============================
 Open Watcom is auto-detected (C:\WATCOM or D:\WATCOM). Run:
 
